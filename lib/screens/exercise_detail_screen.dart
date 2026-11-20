@@ -1,0 +1,209 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../core/theme/app_colors.dart';
+import '../models/exercise.dart';
+import '../services/exercise_repository.dart';
+import '../utils/formatters.dart';
+import '../widgets/app_card.dart';
+import '../widgets/page_helpers.dart';
+
+/// Patient: exercise instructions, prescription and "mark as completed".
+/// [assignmentId] is the id of the patient's assignment, not the library exercise.
+class ExerciseDetailScreen extends ConsumerWidget {
+  const ExerciseDetailScreen({super.key, required this.assignmentId});
+  final String assignmentId;
+
+  Future<void> _complete(BuildContext context, WidgetRef ref) async {
+    final result = await showModalBottomSheet<({int pain, String notes})>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => const _FeedbackSheet(),
+    );
+    if (result == null) return;
+    try {
+      await ref.read(exerciseRepositoryProvider).complete(
+            assignmentId,
+            painLevel: result.pain,
+            notes: result.notes,
+          );
+      ref.invalidate(myAssignmentProvider(assignmentId));
+      ref.invalidate(todayAssignmentsProvider);
+      ref.invalidate(myCompletionsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Exercise completed. Well done.')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(e))));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final text = Theme.of(context).textTheme;
+    final colors = context.appColors;
+    final async = ref.watch(myAssignmentProvider(assignmentId));
+
+    Widget chip(String label) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: colors.secondary,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(label, style: text.labelMedium?.copyWith(color: colors.primary)),
+        );
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Exercise')),
+      body: RefreshPage(
+        onRefresh: () async => ref.refresh(myAssignmentProvider(assignmentId).future),
+        child: AsyncBody<ExerciseAssignment>(
+          value: async,
+          onRetry: () => ref.invalidate(myAssignmentProvider(assignmentId)),
+          builder: (a) {
+            final ex = a.exercise;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if ((ex.imageUrl ?? '').isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.network(
+                        ex.imageUrl!,
+                        height: 200,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
+                Text(ex.title, style: text.headlineSmall),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    chip('${a.sets} sets'),
+                    chip('${a.reps} reps'),
+                    if (a.durationSeconds != null && a.durationSeconds! > 0)
+                      chip('Hold ${fmtSeconds(a.durationSeconds!)}'),
+                    if (a.restSeconds != null && a.restSeconds! > 0)
+                      chip('Rest ${fmtSeconds(a.restSeconds!)}'),
+                  ],
+                ),
+                const SectionHeader('Instructions'),
+                AppCard(child: Text(ex.description, style: text.bodyMedium)),
+                if ((ex.precautions ?? '').isNotEmpty) ...[
+                  const SectionHeader('Precautions'),
+                  AppCard(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline_rounded, color: colors.primary, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text(ex.precautions!, style: text.bodyMedium)),
+                      ],
+                    ),
+                  ),
+                ],
+                if ((ex.videoUrl ?? '').isNotEmpty) ...[
+                  const SectionHeader('Video'),
+                  AppCard(
+                    onTap: () async {
+                      await Clipboard.setData(ClipboardData(text: ex.videoUrl!));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                            content: Text('Video link copied. Open it in your browser.')));
+                      }
+                    },
+                    child: Row(
+                      children: [
+                        Icon(Icons.play_circle_outline_rounded, color: colors.primary),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text('Copy video link', style: text.titleSmall)),
+                        Icon(Icons.copy_rounded, size: 18, color: colors.textSecondary),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: a.completed ? null : () => _complete(context, ref),
+                  icon: Icon(a.completed ? Icons.check_circle_rounded : Icons.check_rounded),
+                  label: Text(a.completed ? 'Completed today' : 'Mark as completed'),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _FeedbackSheet extends StatefulWidget {
+  const _FeedbackSheet();
+
+  @override
+  State<_FeedbackSheet> createState() => _FeedbackSheetState();
+}
+
+class _FeedbackSheetState extends State<_FeedbackSheet> {
+  final _notes = TextEditingController();
+  double _pain = 0;
+
+  @override
+  void dispose() {
+    _notes.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final colors = context.appColors;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          20, 0, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('How did it feel?', style: text.titleLarge),
+          const SizedBox(height: 16),
+          Text('Pain level: ${_pain.round()} / 10', style: text.titleSmall),
+          Text('0 means no pain, 10 means the worst pain.',
+              style: text.bodySmall?.copyWith(color: colors.textSecondary)),
+          Slider(
+            value: _pain,
+            min: 0,
+            max: 10,
+            divisions: 10,
+            label: _pain.round().toString(),
+            onChanged: (v) => setState(() => _pain = v),
+          ),
+          TextField(
+            controller: _notes,
+            minLines: 2,
+            maxLines: 4,
+            decoration: const InputDecoration(
+                labelText: 'Notes for your therapist (optional)',
+                alignLabelWithHint: true),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () => Navigator.pop(
+                context, (pain: _pain.round(), notes: _notes.text.trim())),
+            child: const Text('Save and complete'),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,0 +1,257 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../models/appointment.dart';
+import '../models/patient.dart';
+import '../services/appointment_repository.dart';
+import '../services/patient_repository.dart';
+import '../utils/formatters.dart';
+import '../widgets/page_body.dart';
+import '../widgets/app_states.dart';
+import '../widgets/page_helpers.dart';
+
+/// Therapist: create (appointmentId == null) or edit an appointment.
+class AppointmentFormScreen extends ConsumerStatefulWidget {
+  const AppointmentFormScreen({super.key, this.appointmentId, this.initialDate});
+  final String? appointmentId;
+  final DateTime? initialDate;
+
+  @override
+  ConsumerState<AppointmentFormScreen> createState() => _AppointmentFormScreenState();
+}
+
+class _AppointmentFormScreenState extends ConsumerState<AppointmentFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _notes = TextEditingController();
+  final _amount = TextEditingController();
+  String? _patientId;
+  late DateTime _date = dayOnly(widget.initialDate ?? DateTime.now());
+  TimeOfDay _time = const TimeOfDay(hour: 9, minute: 0);
+  int _duration = 60;
+  AppointmentStatus _status = AppointmentStatus.scheduled;
+  PaymentStatus _payment = PaymentStatus.unpaid;
+  bool _saving = false;
+  bool _prefilled = false;
+
+  bool get _isEdit => widget.appointmentId != null;
+
+  @override
+  void dispose() {
+    _notes.dispose();
+    _amount.dispose();
+    super.dispose();
+  }
+
+  void _prefill(Appointment a) {
+    if (_prefilled) return;
+    _prefilled = true;
+    _patientId = a.patientId;
+    _date = dayOnly(a.start);
+    _time = TimeOfDay(hour: a.start.hour, minute: a.start.minute);
+    _duration = a.durationMinutes;
+    _status = a.status;
+    _payment = a.paymentStatus;
+    _notes.text = a.notes ?? '';
+    _amount.text = a.amount?.toString() ?? '';
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 730)),
+    );
+    if (picked != null) setState(() => _date = picked);
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(context: context, initialTime: _time);
+    if (picked != null) setState(() => _time = picked);
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    final repo = ref.read(appointmentRepositoryProvider);
+    final appointment = Appointment(
+      id: widget.appointmentId ?? '',
+      patientId: _patientId!,
+      patientName: '',
+      start: DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute),
+      durationMinutes: _duration,
+      status: _status,
+      notes: _notes.text.trim(),
+      paymentStatus: _payment,
+      amount: double.tryParse(_amount.text.trim()),
+    );
+    try {
+      if (_isEdit) {
+        await repo.update(widget.appointmentId!, appointment);
+        ref.invalidate(appointmentProvider((id: widget.appointmentId!, mine: false)));
+      } else {
+        await repo.create(appointment);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(_isEdit ? 'Appointment updated' : 'Appointment scheduled')));
+      context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(e))));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isEdit) {
+      final key = (id: widget.appointmentId!, mine: false);
+      return Scaffold(
+        appBar: AppBar(title: const Text('Edit appointment')),
+        body: AsyncBody<Appointment>(
+          value: ref.watch(appointmentProvider(key)),
+          onRetry: () => ref.invalidate(appointmentProvider(key)),
+          builder: (a) {
+            _prefill(a);
+            return _form();
+          },
+        ),
+      );
+    }
+    return Scaffold(appBar: AppBar(title: const Text('New appointment')), body: _form());
+  }
+
+  Widget _form() {
+    final patients = ref.watch(patientsProvider);
+    return SingleChildScrollView(
+      child: PageBody(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                patients.when(
+                  loading: () => const LinearProgressIndicator(),
+                  error: (e, _) => Text(errorText(e)),
+                  data: (List<Patient> all) {
+                    final options =
+                        all.where((p) => p.isActive || p.id == _patientId).toList();
+                    return DropdownButtonFormField<String>(
+                      initialValue: _patientId,
+                      decoration: const InputDecoration(labelText: 'Patient'),
+                      items: [
+                        for (final p in options)
+                          DropdownMenuItem(value: p.id, child: Text(p.name)),
+                      ],
+                      onChanged: (v) => setState(() => _patientId = v),
+                      validator: (v) => v == null ? 'Choose a patient' : null,
+                    );
+                  },
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: _pickDate,
+                        borderRadius: BorderRadius.circular(12),
+                        child: InputDecorator(
+                          decoration: const InputDecoration(labelText: 'Date'),
+                          child: Text(fmtDate(_date)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: InkWell(
+                        onTap: _pickTime,
+                        borderRadius: BorderRadius.circular(12),
+                        child: InputDecorator(
+                          decoration: const InputDecoration(labelText: 'Time'),
+                          child: Text('${two(_time.hour)}:${two(_time.minute)}'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<int>(
+                  initialValue: _duration,
+                  decoration: const InputDecoration(labelText: 'Duration'),
+                  items: [
+                    for (final m in {30, 45, 60, 90, _duration}.toList()..sort())
+                      DropdownMenuItem(value: m, child: Text('$m minutes')),
+                  ],
+                  onChanged: (v) => setState(() => _duration = v ?? 60),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _notes,
+                  minLines: 2,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                      labelText: 'Notes (optional)', alignLabelWithHint: true),
+                ),
+                if (_isEdit) ...[
+                  const SectionHeader('Status and payment'),
+                  DropdownButtonFormField<AppointmentStatus>(
+                    initialValue: _status,
+                    decoration: const InputDecoration(labelText: 'Status'),
+                    items: [
+                      for (final s in AppointmentStatus.values)
+                        DropdownMenuItem(value: s, child: Text(s.label)),
+                    ],
+                    onChanged: (v) => setState(() => _status = v ?? _status),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<PaymentStatus>(
+                          initialValue: _payment,
+                          decoration: const InputDecoration(labelText: 'Payment'),
+                          items: [
+                            for (final s in PaymentStatus.values)
+                              DropdownMenuItem(value: s, child: Text(s.label)),
+                          ],
+                          onChanged: (v) => setState(() => _payment = v ?? _payment),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _amount,
+                          keyboardType:
+                              const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(labelText: 'Amount'),
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return null;
+                            return double.tryParse(v.trim()) == null
+                                ? 'Enter a valid amount'
+                                : null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const ButtonSpinner()
+                      : Text(_isEdit ? 'Save changes' : 'Schedule appointment'),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
