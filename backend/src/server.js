@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const connectDB = require('./config/db');
 const patientRoutes = require('./routes/patients');
+const appointmentRoutes = require('./routes/appointments');
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.get('/api/health', (req, res) => {
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
+app.use('/api/appointments', appointmentRoutes);
 app.use(notFound);
 app.use(errorHandler);
 

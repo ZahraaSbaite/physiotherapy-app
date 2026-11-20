@@ -1,11 +1,8 @@
 const User = require('../models/User');
-const Conversation = require('../models/Conversation');
-const Message = require('../models/Message');
 const Appointment = require('../models/Appointment');
 const Assignment = require('../models/Assignment');
 const Completion = require('../models/Completion');
 const Channel = require('../models/Channel');
-const ChannelMessage = require('../models/ChannelMessage');
 const Broadcast = require('../models/Broadcast');
 
 const HttpError = require('../utils/HttpError');
@@ -46,14 +43,6 @@ exports.create = async (req, res) => {
         gender: clean(req.body.gender),
         medicalNotes: clean(req.body.medicalNotes),
     });
-
-    // Every patient gets their chat thread with their admin
-    try {
-        await Conversation.create({ adminId: req.user._id, patientId: patient._id });
-    } catch (err) {
-        await User.deleteOne({ _id: patient._id });
-        throw err;
-    }
 
     res.status(201).json({ patient });
 };
@@ -159,11 +148,7 @@ exports.remove = async (req, res) => {
     deleted.completions = (await Completion.deleteMany({ adminId, patientId: id })).deletedCount;
     deleted.assignments = (await Assignment.deleteMany({ adminId, patientId: id })).deletedCount;
     deleted.appointments = (await Appointment.deleteMany({ adminId, patientId: id })).deletedCount;
-    deleted.messages = (await Message.deleteMany({ adminId, patientId: id })).deletedCount;
-    deleted.conversations = (await Conversation.deleteMany({ adminId, patientId: id })).deletedCount;
-    deleted.channelMessages = (await ChannelMessage.deleteMany({ adminId, senderId: id })).deletedCount;
 
-    await ChannelMessage.updateMany({ adminId, readBy: id }, { $pull: { readBy: id } });
     await Channel.updateMany({ adminId, memberIds: id }, { $pull: { memberIds: id } });
     await Broadcast.updateMany(
         {

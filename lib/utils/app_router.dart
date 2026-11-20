@@ -11,7 +11,6 @@ import '../screens/settings_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/patient_home_screen.dart';
 import '../widgets/nav_shell.dart';
-import '../widgets/placeholders.dart';
 
 // Patient management
 import '../screens/patients_screen.dart';
@@ -39,7 +38,11 @@ class AppRoutes {
 }
 
 const _adminItems = [
-  NavItem(label: 'Home', icon: Icons.home_outlined, selectedIcon: Icons.home),
+  NavItem(
+    label: 'Home',
+    icon: Icons.home_outlined,
+    selectedIcon: Icons.home,
+  ),
   NavItem(
     label: 'Patients',
     icon: Icons.people_outline,
@@ -51,11 +54,6 @@ const _adminItems = [
     selectedIcon: Icons.calendar_month,
   ),
   NavItem(
-    label: 'Chat',
-    icon: Icons.chat_bubble_outline,
-    selectedIcon: Icons.chat_bubble,
-  ),
-  NavItem(
     label: 'Profile',
     icon: Icons.person_outline,
     selectedIcon: Icons.person,
@@ -63,7 +61,11 @@ const _adminItems = [
 ];
 
 const _patientItems = [
-  NavItem(label: 'Home', icon: Icons.home_outlined, selectedIcon: Icons.home),
+  NavItem(
+    label: 'Home',
+    icon: Icons.home_outlined,
+    selectedIcon: Icons.home,
+  ),
   NavItem(
     label: 'Exercises',
     icon: Icons.fitness_center_outlined,
@@ -75,11 +77,6 @@ const _patientItems = [
     selectedIcon: Icons.event,
   ),
   NavItem(
-    label: 'Chat',
-    icon: Icons.chat_bubble_outline,
-    selectedIcon: Icons.chat_bubble,
-  ),
-  NavItem(
     label: 'Profile',
     icon: Icons.person_outline,
     selectedIcon: Icons.person,
@@ -89,7 +86,10 @@ const _patientItems = [
 final routerProvider = Provider<GoRouter>((ref) {
   // Tells the router to re-check its rules whenever the login state changes
   final refresh = ValueNotifier<int>(0);
-  ref.listen(authControllerProvider, (previous, next) => refresh.value++);
+  ref.listen(
+    authControllerProvider,
+    (previous, next) => refresh.value++,
+  );
 
   final router = GoRouter(
     initialLocation: AppRoutes.splash,
@@ -100,7 +100,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       switch (auth.status) {
         case AuthStatus.unknown:
-          return location == AppRoutes.splash ? null : AppRoutes.splash;
+          return location == AppRoutes.splash
+              ? null
+              : AppRoutes.splash;
 
         case AuthStatus.unauthenticated:
           return location == AppRoutes.login ? null : AppRoutes.login;
@@ -108,9 +110,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         case AuthStatus.authenticated:
           {
             final home =
-                auth.user!.isAdmin ? AppRoutes.admin : AppRoutes.patient;
+                auth.user!.isAdmin
+                    ? AppRoutes.admin
+                    : AppRoutes.patient;
             // Each role may only stay inside its own area
-            final inside = location == home || location.startsWith('$home/');
+            final inside =
+                location == home || location.startsWith('$home/');
             return inside ? null : home;
           }
       }
@@ -150,7 +155,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                   // 'new' must stay above ':id'
                   GoRoute(
                     path: 'new',
-                    builder: (context, state) => const PatientFormScreen(),
+                    builder:
+                        (context, state) => const PatientFormScreen(),
                   ),
                   GoRoute(
                     path: ':id',
@@ -190,7 +196,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'new',
-                    builder: (context, state) => const ExerciseFormScreen(),
+                    builder:
+                        (context, state) =>
+                            const ExerciseFormScreen(),
                   ),
                   GoRoute(
                     path: ':id/edit',
@@ -209,7 +217,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/admin/appointments',
-                builder: (context, state) => const AppointmentsScreen(),
+                builder:
+                    (context, state) => const AppointmentsScreen(),
                 routes: [
                   GoRoute(
                     path: 'new',
@@ -231,7 +240,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                         path: 'edit',
                         builder:
                             (context, state) => AppointmentFormScreen(
-                              appointmentId: state.pathParameters['id'],
+                              appointmentId:
+                                  state.pathParameters['id'],
                             ),
                       ),
                     ],
@@ -244,33 +254,24 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/admin/chat',
-                builder:
-                    (context, state) => const PlaceholderTab(
-                      title: 'Chat',
-                      icon: Icons.chat_bubble_outline,
-                      message: 'Chats with your patients will appear here.',
-                    ),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
                 path: '/admin/profile',
                 builder:
                     (context, state) => const ProfileScreen(
-                      changePasswordPath: '/admin/profile/change-password',
+                      changePasswordPath:
+                          '/admin/profile/change-password',
                       settingsPath: '/admin/profile/settings',
                     ),
                 routes: [
                   GoRoute(
                     path: 'change-password',
-                    builder: (context, state) => const ChangePasswordScreen(),
+                    builder:
+                        (context, state) =>
+                            const ChangePasswordScreen(),
                   ),
                   GoRoute(
                     path: 'settings',
-                    builder: (context, state) => const SettingsScreen(),
+                    builder:
+                        (context, state) => const SettingsScreen(),
                   ),
                 ],
               ),
@@ -282,14 +283,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ---------- Patient area ----------
       StatefulShellRoute.indexedStack(
         builder:
-            (context, state, shell) =>
-                NavShell(navigationShell: shell, items: _patientItems),
+            (context, state, shell) => NavShell(
+              navigationShell: shell,
+              items: _patientItems,
+            ),
         branches: [
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: AppRoutes.patient,
-                builder: (context, state) => const PatientHomeScreen(),
+                builder:
+                    (context, state) => const PatientHomeScreen(),
               ),
             ],
           ),
@@ -297,12 +301,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/patient/exercises',
-                builder: (context, state) => const MyExercisesScreen(),
+                builder:
+                    (context, state) => const MyExercisesScreen(),
                 routes: [
                   // 'history' must stay above ':id'
                   GoRoute(
                     path: 'history',
-                    builder: (context, state) => const ExerciseHistoryScreen(),
+                    builder:
+                        (context, state) =>
+                            const ExerciseHistoryScreen(),
                   ),
                   GoRoute(
                     path: ':id',
@@ -319,7 +326,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/patient/appointments',
-                builder: (context, state) => const MyAppointmentsScreen(),
+                builder:
+                    (context, state) => const MyAppointmentsScreen(),
                 routes: [
                   GoRoute(
                     path: ':id',
@@ -336,34 +344,24 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/patient/chat',
-                builder:
-                    (context, state) => const PlaceholderTab(
-                      title: 'Chat',
-                      icon: Icons.chat_bubble_outline,
-                      message:
-                          'Your chat with your therapist will appear here.',
-                    ),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
                 path: '/patient/profile',
                 builder:
                     (context, state) => const ProfileScreen(
-                      changePasswordPath: '/patient/profile/change-password',
+                      changePasswordPath:
+                          '/patient/profile/change-password',
                       settingsPath: '/patient/profile/settings',
                     ),
                 routes: [
                   GoRoute(
                     path: 'change-password',
-                    builder: (context, state) => const ChangePasswordScreen(),
+                    builder:
+                        (context, state) =>
+                            const ChangePasswordScreen(),
                   ),
                   GoRoute(
                     path: 'settings',
-                    builder: (context, state) => const SettingsScreen(),
+                    builder:
+                        (context, state) => const SettingsScreen(),
                   ),
                 ],
               ),

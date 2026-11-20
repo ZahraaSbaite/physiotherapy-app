@@ -27,15 +27,21 @@ class AdminHomeScreen extends ConsumerWidget {
               AppSpacing.xxl,
             ),
             children: [
-              AppearAnimation(child: HomeHeader(name: user?.name ?? '')),
+              AppearAnimation(
+                child: HomeHeader(name: user?.name ?? ''),
+              ),
               const SizedBox(height: AppSpacing.xxl),
-              const AppearAnimation(index: 1, child: SectionTitle('Today')),
+              const AppearAnimation(
+                index: 1,
+                child: SectionTitle('Today'),
+              ),
               const AppearAnimation(
                 index: 2,
                 child: ComingSoonCard(
                   icon: Icons.today_outlined,
                   title: "Today's schedule",
-                  subtitle: 'Your appointments for today will appear here.',
+                  subtitle:
+                      'Your appointments for today will appear here.',
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
@@ -48,16 +54,8 @@ class AdminHomeScreen extends ConsumerWidget {
                 child: ComingSoonCard(
                   icon: Icons.note_alt_outlined,
                   title: 'Patient notes',
-                  subtitle: 'New notes from exercises your patients completed.',
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const AppearAnimation(
-                index: 5,
-                child: ComingSoonCard(
-                  icon: Icons.chat_bubble_outline,
-                  title: 'Unread messages',
-                  subtitle: 'Messages from your patients.',
+                  subtitle:
+                      'New notes from exercises your patients completed.',
                 ),
               ),
             ],
