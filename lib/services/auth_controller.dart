@@ -12,7 +12,11 @@ enum AuthStatus {
 }
 
 class AuthState {
-  const AuthState({required this.status, this.user, this.restoreError});
+  const AuthState({
+    required this.status,
+    this.user,
+    this.restoreError,
+  });
 
   final AuthStatus status;
   final AppUser? user;
@@ -28,9 +32,8 @@ final authRepositoryProvider = Provider<AuthRepository>(
   ),
 );
 
-final authControllerProvider = NotifierProvider<AuthController, AuthState>(
-  AuthController.new,
-);
+final authControllerProvider =
+    NotifierProvider<AuthController, AuthState>(AuthController.new);
 
 class AuthController extends Notifier<AuthState> {
   @override
@@ -48,25 +51,51 @@ class AuthController extends Notifier<AuthState> {
   Future<void> restore() async {
     state = const AuthState(status: AuthStatus.unknown);
     try {
-      final user = await ref.read(authRepositoryProvider).currentUser();
+      final user =
+          await ref.read(authRepositoryProvider).currentUser();
       state =
           user == null
               ? const AuthState(status: AuthStatus.unauthenticated)
-              : AuthState(status: AuthStatus.authenticated, user: user);
+              : AuthState(
+                status: AuthStatus.authenticated,
+                user: user,
+              );
     } on ApiException catch (e) {
       if (e.isUnauthorized) {
         await ref.read(tokenStorageProvider).clear();
         state = const AuthState(status: AuthStatus.unauthenticated);
       } else {
         // No internet or server down: keep the saved login, let the user retry
-        state = AuthState(status: AuthStatus.unknown, restoreError: e.message);
+        state = AuthState(
+          status: AuthStatus.unknown,
+          restoreError: e.message,
+        );
       }
     }
   }
 
   /// Throws an ApiException with a readable message if the login fails.
   Future<void> login(String email, String password) async {
-    final user = await ref.read(authRepositoryProvider).login(email, password);
+    final user = await ref
+        .read(authRepositoryProvider)
+        .login(email, password);
+    state = AuthState(status: AuthStatus.authenticated, user: user);
+  }
+
+  /// Registers a new therapist account and signs them in.
+  /// Throws an ApiException with a readable message if registration fails.
+  Future<void> registerTherapist({
+    required String fullName,
+    required String email,
+    required String password,
+  }) async {
+    final user = await ref
+        .read(authRepositoryProvider)
+        .registerTherapist(
+          fullName: fullName,
+          email: email,
+          password: password,
+        );
     state = AuthState(status: AuthStatus.authenticated, user: user);
   }
 

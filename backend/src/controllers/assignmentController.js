@@ -82,17 +82,25 @@ function present(a, stat, ymd) {
 
 // GET /api/patients/:id/assignments
 exports.listForPatient = async (req, res) => {
-    const patient = await findOwnPatient(req.user, req.params.id);
-    if (!patient) throw new HttpError(404, 'Patient not found');
-
-    const items = await Assignment.find({ adminId: req.user._id, patientId: patient._id, isActive: true }).sort({
-        createdAt: -1,
-    });
-    const stats = await completionStats(
-        req.user,
-        items.map((a) => a._id)
-    );
-    res.json({ assignments: items.map((a) => present(a, stats.get(String(a._id)))) });
+  const patient = await findOwnPatient(req.user, req.params.id);
+  if (!patient) throw new HttpError(404, 'Patient not found');
+  
+  // 👇 FIX: Removed `isActive: true` so stopped exercises still show in history.
+  // Sorted to show active assignments first, then by creation date.
+  const items = await Assignment.find({ 
+    adminId: req.user._id, 
+    patientId: patient._id 
+  }).sort({
+    isActive: -1, 
+    createdAt: -1,
+  });
+  
+  const stats = await completionStats(
+    req.user,
+    items.map((a) => a._id)
+  );
+  
+  res.json({ assignments: items.map((a) => present(a, stats.get(String(a._id)))) });
 };
 
 async function ownAppointment(admin, patient, id, field) {
@@ -321,4 +329,64 @@ exports.complete = async (req, res) => {
     }
 
     res.status(201).json({ completion, progress: { done: done + 1, total: a.totalTimes } });
+};
+
+// GET /api/assignments/admin/unread-notes
+exports.getUnreadNotes = async (req, res) => {
+  const notes = await Completion.find({
+    adminId: req.user._id,
+    patientNote: { $ne: null, $ne: '' },
+    noteReadByAdmin: false,
+  })
+    .sort({ completedAt: -1 })
+    .limit(20)
+    .populate('patientId', 'name');
+  
+  res.json({ 
+    count: notes.length,
+    notes: notes.map(n => ({
+      id: n._id.toString(),
+      patientName: n.patientId.name,
+      exerciseTitle: n.exerciseTitle,
+      patientNote: n.patientNote,
+      painLevel: n.painLevel,
+      completedAt: n.completedAt,
+    }))
+  });
+};
+
+// PATCH /api/assignments/admin/mark-read
+exports.markNotesRead = async (req, res) => {
+  await Completion.updateMany(
+    { adminId: req.user._id, noteReadByAdmin: false },
+    { noteReadByAdmin: true }
+  );
+  res.json({ message: 'Notes marked as read' });
+};
+
+// GET /api/assignments/admin/unread-notes
+exports.getUnreadNotes = async (req, res) => {
+  const notes = await Completion.find({
+    adminId: req.user._id,
+    patientNote: { $ne: null, $ne: '' },
+    noteReadByAdmin: false,
+  }).sort({ completedAt: -1 }).limit(20).populate('patientId', 'name');
+  
+  res.json({ 
+    count: notes.length,
+    notes: notes.map(n => ({
+      id: n._id.toString(),
+      patientName: n.patientId.name,
+      exerciseTitle: n.exerciseTitle,
+      patientNote: n.patientNote,
+      painLevel: n.painLevel,
+      completedAt: n.completedAt,
+    }))
+  });
+};
+
+// PATCH /api/assignments/admin/mark-read
+exports.markNotesRead = async (req, res) => {
+  await Completion.updateMany({ adminId: req.user._id, noteReadByAdmin: false }, { noteReadByAdmin: true });
+  res.json({ message: 'Notes marked as read' });
 };

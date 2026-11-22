@@ -258,7 +258,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Calendar tab  <-- FIX: path is now '/admin/calendar' to match the nav
+          // Calendar tab
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -273,6 +273,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                           initialDate: DateTime.tryParse(
                             state.uri.queryParameters['date'] ?? '',
                           ),
+                          // 👇 FIX: Pre-select patient when navigating from patient profile
+                          patientId:
+                              state.uri.queryParameters['patientId'],
                         ),
                   ),
                   GoRoute(

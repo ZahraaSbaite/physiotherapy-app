@@ -8,6 +8,7 @@ import '../utils/validators.dart';
 import '../services/auth_controller.dart';
 import '../widgets/app_states.dart';
 import '../widgets/brand_mark.dart';
+import 'therapist_register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -45,17 +46,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       await ref
           .read(authControllerProvider.notifier)
-          .login(_email.text, _password.text);
+          .login(_email.text.trim(), _password.text);
       // On success the auth state changes and this screen is replaced
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _error = e.message);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Something went wrong. Please try again.');
+      setState(
+        () => _error = 'Something went wrong. Please try again.',
+      );
     }
 
     if (mounted) setState(() => _loading = false);
+  }
+
+  void _openTherapistSignUp() {
+    if (_loading) return;
+    FocusScope.of(context).unfocus();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => TherapistRegisterScreen(
+              initialEmail:
+                  _email.text.trim().isEmpty
+                      ? null
+                      : _email.text.trim(),
+            ),
+      ),
+    );
   }
 
   @override
@@ -81,11 +100,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: BrandMark(size: 56),
                       ),
                       const SizedBox(height: AppSpacing.xl),
-                      Text('Welcome back', style: text.headlineMedium),
+                      Text(
+                        'Welcome back',
+                        style: text.headlineMedium,
+                      ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         'Log in to your iPhysio account.',
-                        style: text.bodyLarge?.copyWith(color: c.textSecondary),
+                        style: text.bodyLarge?.copyWith(
+                          color: c.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.xxl),
                       TextFormField(
@@ -113,14 +137,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             tooltip:
-                                _obscure ? 'Show password' : 'Hide password',
+                                _obscure
+                                    ? 'Show password'
+                                    : 'Hide password',
                             icon: Icon(
                               _obscure
                                   ? Icons.visibility_outlined
                                   : Icons.visibility_off_outlined,
                             ),
                             onPressed:
-                                () => setState(() => _obscure = !_obscure),
+                                () => setState(
+                                  () => _obscure = !_obscure,
+                                ),
                           ),
                         ),
                         validator: Validators.passwordRequired,
@@ -131,9 +159,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         alignment: Alignment.topCenter,
                         child:
                             _error == null
-                                ? const SizedBox(width: double.infinity)
+                                ? const SizedBox(
+                                  width: double.infinity,
+                                )
                                 : Padding(
-                                  padding: const EdgeInsets.only(top: 16),
+                                  padding: const EdgeInsets.only(
+                                    top: 16,
+                                  ),
                                   child: ErrorBanner(_error!),
                                 ),
                       ),
@@ -146,10 +178,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 : const Text('Log in'),
                       ),
                       const SizedBox(height: 24),
+                      Wrap(
+                        alignment: WrapAlignment.start,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 4,
+                        children: [
+                          Text(
+                            'New therapist?',
+                            style: text.bodySmall?.copyWith(
+                              color: c.textSecondary,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed:
+                                _loading
+                                    ? null
+                                    : _openTherapistSignUp,
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              minimumSize: Size.zero,
+                              tapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              'Create a therapist account',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
                       Text(
-                        'Accounts are created by your therapist.',
+                        'Patient accounts are created by a therapist.',
                         textAlign: TextAlign.start,
-                        style: text.bodySmall,
+                        style: text.bodySmall?.copyWith(
+                          color: c.textSecondary,
+                        ),
                       ),
                     ],
                   ),

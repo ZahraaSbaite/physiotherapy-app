@@ -12,9 +12,12 @@ const patientRoutes = require('./routes/patients');
 const appointmentRoutes = require('./routes/appointments');
 const exerciseRoutes = require('./routes/exercises');
 const assignmentRoutes = require('./routes/assignments');
-const broadcastRoutes = require('./routes/broadcasts'); // <-- Must match file name exactly
-const channelRoutes = require('./routes/channels');     // <-- Must match file name exactly
+const broadcastRoutes = require('./routes/broadcasts');
+const channelRoutes = require('./routes/channels');
 const meRoutes = require('./routes/me');
+
+// 👇 ADD RATE LIMITER IMPORT 👇
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 
@@ -33,18 +36,28 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
+// 👇 CONFIGURE LOGIN RATE LIMITER 👇
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login requests per windowMs
+  message: {
+    error: 'Too many login attempts from this IP, please try again after 15 minutes',
+  },
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+});
+
 // --- ROUTE MOUNTING (MUST BE BEFORE notFound) ---
+// 👇 APPLY LIMITER TO LOGIN ROUTE ONLY 👇
+app.use('/api/auth/login', loginLimiter);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/exercises', exerciseRoutes);
 app.use('/api/assignments', assignmentRoutes);
-
-// 👇 THESE ARE THE CRITICAL LINES 👇
-console.log('✅ Mounting /api/broadcasts and /api/channels...'); // DEBUG LOG
 app.use('/api/broadcasts', broadcastRoutes);
 app.use('/api/channels', channelRoutes);
-
 app.use('/api/me', meRoutes);
 
 // Error Handling (MUST BE LAST)

@@ -17,6 +17,28 @@ class AuthRepository {
     return AppUser.fromJson(data['user'] as Map<String, dynamic>);
   }
 
+  Future<AppUser> registerTherapist({
+    required String fullName,
+    required String email,
+    required String password,
+  }) async {
+    // Adjust endpoint path or body keys (e.g., 'name' vs 'fullName' or 'role')
+    // if your backend expects different field names.
+    final data = await _api.post(
+      '/auth/register',
+      data: {
+        'fullName': fullName.trim(),
+        'email': email.trim(),
+        'password': password,
+        'role': 'therapist',
+      },
+    );
+    if (data['token'] != null) {
+      await _storage.write(data['token'] as String);
+    }
+    return AppUser.fromJson(data['user'] as Map<String, dynamic>);
+  }
+
   /// The user for the saved token, or null if nobody is logged in.
   Future<AppUser?> currentUser() async {
     final token = await _storage.read();
@@ -36,7 +58,10 @@ class AuthRepository {
   ) async {
     await _api.post(
       '/auth/change-password',
-      data: {'currentPassword': currentPassword, 'newPassword': newPassword},
+      data: {
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      },
     );
   }
 

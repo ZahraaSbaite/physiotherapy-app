@@ -179,7 +179,7 @@ class PatientProgressScreen extends ConsumerWidget {
                             'Completed exercises will appear here.',
                       )
                     else
-                      for (final c in all.take(30))
+                      for (final c in all)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: AppCard(

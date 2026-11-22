@@ -1,8 +1,14 @@
-int _int(dynamic v, [int fallback = 0]) => v is num ? v.toInt() : fallback;
+int _int(dynamic v, [int fallback = 0]) =>
+    v is num ? v.toInt() : fallback;
 int? _intOrNull(dynamic v) => v is num ? v.toInt() : null;
 
 List<String> _strings(dynamic v) =>
-    v is List ? v.map((e) => e.toString()).where((e) => e.isNotEmpty).toList() : const [];
+    v is List
+        ? v
+            .map((e) => e.toString())
+            .where((e) => e.isNotEmpty)
+            .toList()
+        : const [];
 
 class Exercise {
   const Exercise({
@@ -32,35 +38,33 @@ class Exercise {
   final int? defaultRestSeconds;
 
   factory Exercise.fromJson(Map<String, dynamic> j) => Exercise(
-        id: (j['_id'] ?? j['id'] ?? '').toString(),
-        title: (j['title'] ?? '').toString(),
-        description: (j['description'] ?? '').toString(),
-        category: j['category'] as String?,
-        videoUrl: j['videoUrl'] as String?,
-        imageUrls: _strings(j['imageUrls']),
-        precautions: j['precautions'] as String?,
-        defaultSets: _intOrNull(j['defaultSets']),
-        defaultReps: _intOrNull(j['defaultReps']),
-        defaultDurationSeconds: _intOrNull(j['defaultDurationSeconds']),
-        defaultRestSeconds: _intOrNull(j['defaultRestSeconds']),
-      );
+    id: (j['_id'] ?? j['id'] ?? '').toString(),
+    title: (j['title'] ?? '').toString(),
+    description: (j['description'] ?? '').toString(),
+    category: j['category'] as String?,
+    videoUrl: j['videoUrl'] as String?,
+    imageUrls: _strings(j['imageUrls']),
+    precautions: j['precautions'] as String?,
+    defaultSets: _intOrNull(j['defaultSets']),
+    defaultReps: _intOrNull(j['defaultReps']),
+    defaultDurationSeconds: _intOrNull(j['defaultDurationSeconds']),
+    defaultRestSeconds: _intOrNull(j['defaultRestSeconds']),
+  );
 
-  // Empty strings and null clear a field on the server (PATCH).
   Map<String, dynamic> toJson() => {
-        'title': title,
-        'description': description,
-        'category': category ?? '',
-        'videoUrl': videoUrl ?? '',
-        'imageUrls': imageUrls,
-        'precautions': precautions ?? '',
-        'defaultSets': defaultSets,
-        'defaultReps': defaultReps,
-        'defaultDurationSeconds': defaultDurationSeconds,
-        'defaultRestSeconds': defaultRestSeconds,
-      };
+    'title': title,
+    'description': description,
+    'category': category ?? '',
+    'videoUrl': videoUrl ?? '',
+    'imageUrls': imageUrls,
+    'precautions': precautions ?? '',
+    'defaultSets': defaultSets,
+    'defaultReps': defaultReps,
+    'defaultDurationSeconds': defaultDurationSeconds,
+    'defaultRestSeconds': defaultRestSeconds,
+  };
 }
 
-/// How an assignment repeats. Matches the backend's repeat.type.
 enum RepeatType {
   auto('auto', 'Spread evenly'),
   daily('daily', 'Every day'),
@@ -70,16 +74,15 @@ enum RepeatType {
   final String api;
   final String label;
 
-  static RepeatType parse(String? v) =>
-      values.firstWhere((t) => t.api == v, orElse: () => RepeatType.auto);
+  static RepeatType parse(String? v) => values.firstWhere(
+    (t) => t.api == v,
+    orElse: () => RepeatType.auto,
+  );
 }
 
-/// Backend weekdays are 0 = Sunday ... 6 = Saturday.
-/// The app uses DateTime's 1 = Monday ... 7 = Sunday.
 int weekdayToApi(int appDay) => appDay % 7;
 int weekdayFromApi(int apiDay) => apiDay == 0 ? 7 : apiDay;
 
-/// An exercise prescribed to a patient, linked to an appointment.
 class ExerciseAssignment {
   const ExerciseAssignment({
     required this.id,
@@ -99,6 +102,7 @@ class ExerciseAssignment {
     this.totalTimes = 1,
     this.doneCount = 0,
     this.completed = false,
+    this.isActive = true, // 👈 ADDED
   });
 
   final String id;
@@ -111,36 +115,35 @@ class ExerciseAssignment {
   final int? restSeconds;
   final String? instructions;
   final RepeatType repeatType;
-
-  /// 1 = Monday ... 7 = Sunday. Only used when [repeatType] is weekly.
   final List<int> daysOfWeek;
-
-  /// "HH:MM" reminder times. Each one is a separate session each day.
   final List<String> reminderTimes;
   final DateTime? startDate;
   final DateTime? endDate;
-
-  /// How many sessions the patient should do in total, and how many are done
-  /// (the "6/10" progress).
   final int totalTimes;
   final int doneCount;
-
-  /// Patient endpoints only: whether today's session(s) are done.
   final bool completed;
+  final bool
+  isActive; // 👈 ADDED: false when the exercise was "stopped" (history kept)
 
-  double get progress => totalTimes == 0 ? 0 : (doneCount / totalTimes).clamp(0, 1).toDouble();
+  double get progress =>
+      totalTimes == 0
+          ? 0
+          : (doneCount / totalTimes).clamp(0, 1).toDouble();
 
   factory ExerciseAssignment.fromJson(Map<String, dynamic> j) {
     final ex = j['exercise'];
     final repeat = j['repeat'] is Map ? j['repeat'] as Map : const {};
-    final progress = j['progress'] is Map ? j['progress'] as Map : const {};
+    final progress =
+        j['progress'] is Map ? j['progress'] as Map : const {};
     return ExerciseAssignment(
       id: (j['_id'] ?? j['id'] ?? '').toString(),
-      exercise: ex is Map<String, dynamic>
-          ? Exercise.fromJson(ex)
-          : Exercise(
-              id: (j['exerciseId'] ?? '').toString(),
-              title: (j['exerciseTitle'] ?? 'Exercise').toString()),
+      exercise:
+          ex is Map<String, dynamic>
+              ? Exercise.fromJson(ex)
+              : Exercise(
+                id: (j['exerciseId'] ?? '').toString(),
+                title: (j['exerciseTitle'] ?? 'Exercise').toString(),
+              ),
       appointmentId: j['appointmentId']?.toString(),
       nextAppointmentId: j['nextAppointmentId']?.toString(),
       sets: _intOrNull(j['sets']),
@@ -149,17 +152,18 @@ class ExerciseAssignment {
       restSeconds: _intOrNull(j['restSeconds']),
       instructions: j['instructions'] as String?,
       repeatType: RepeatType.parse(repeat['type'] as String?),
-      daysOfWeek: (repeat['daysOfWeek'] as List?)
+      daysOfWeek:
+          (repeat['daysOfWeek'] as List?)
               ?.map((e) => weekdayFromApi(_int(e)))
               .toList() ??
           const [],
       reminderTimes: _strings(j['reminderTimes']),
-      // Dates are plain "YYYY-MM-DD", parsed as local midnight.
       startDate: DateTime.tryParse((j['startDate'] ?? '').toString()),
       endDate: DateTime.tryParse((j['endDate'] ?? '').toString()),
       totalTimes: _int(j['totalTimes'], _int(progress['total'], 1)),
       doneCount: _int(progress['done']),
       completed: j['completed'] as bool? ?? false,
+      isActive: j['isActive'] as bool? ?? true, // 👈 ADDED
     );
   }
 }
@@ -173,6 +177,7 @@ class Completion {
     this.sequenceNumber,
     this.painLevel,
     this.patientNote,
+    this.scheduledTime,
   });
 
   final String id;
@@ -180,20 +185,50 @@ class Completion {
   final String exerciseTitle;
   final DateTime completedAt;
   final int? sequenceNumber;
-
-  /// Optional, 0 to 10.
   final int? painLevel;
   final String? patientNote;
+  final String? scheduledTime;
 
   factory Completion.fromJson(Map<String, dynamic> j) => Completion(
-        id: (j['_id'] ?? j['id'] ?? '').toString(),
-        assignmentId: (j['assignmentId'] ?? '').toString(),
-        exerciseTitle: (j['exerciseTitle'] ?? 'Exercise').toString(),
-        completedAt:
-            DateTime.tryParse((j['completedAt'] ?? '').toString())?.toLocal() ??
-                DateTime.now(),
-        sequenceNumber: _intOrNull(j['sequenceNumber']),
-        painLevel: _intOrNull(j['painLevel']),
-        patientNote: j['patientNote'] as String?,
-      );
+    id: (j['_id'] ?? j['id'] ?? '').toString(),
+    assignmentId: (j['assignmentId'] ?? '').toString(),
+    exerciseTitle: (j['exerciseTitle'] ?? 'Exercise').toString(),
+    completedAt:
+        DateTime.tryParse(
+          (j['completedAt'] ?? '').toString(),
+        )?.toLocal() ??
+        DateTime.now(),
+    sequenceNumber: _intOrNull(j['sequenceNumber']),
+    painLevel: _intOrNull(j['painLevel']),
+    patientNote: j['patientNote'] as String?,
+    scheduledTime: j['scheduledTime'] as String?,
+  );
+}
+
+class UnreadNote {
+  const UnreadNote({
+    required this.id,
+    required this.patientName,
+    required this.exerciseTitle,
+    required this.patientNote,
+    this.painLevel,
+    required this.completedAt,
+  });
+
+  final String id;
+  final String patientName;
+  final String exerciseTitle;
+  final String patientNote;
+  final int? painLevel;
+  final DateTime completedAt;
+
+  factory UnreadNote.fromJson(Map<String, dynamic> j) => UnreadNote(
+    id: j['id'].toString(),
+    patientName: j['patientName'].toString(),
+    exerciseTitle: j['exerciseTitle'].toString(),
+    patientNote: j['patientNote'].toString(),
+    painLevel: j['painLevel'] as int?,
+    completedAt:
+        DateTime.parse(j['completedAt'].toString()).toLocal(),
+  );
 }

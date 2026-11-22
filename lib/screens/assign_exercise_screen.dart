@@ -13,18 +13,17 @@ import '../widgets/page_body.dart';
 import '../widgets/app_states.dart';
 import '../widgets/page_helpers.dart';
 
-/// Therapist: prescribe an exercise to one patient.
-/// Every assignment is linked to an appointment, has a number of sessions
-/// (totalTimes), a repeat rule and optional reminder times.
 class AssignExerciseScreen extends ConsumerStatefulWidget {
   const AssignExerciseScreen({super.key, required this.patientId});
   final String patientId;
 
   @override
-  ConsumerState<AssignExerciseScreen> createState() => _AssignExerciseScreenState();
+  ConsumerState<AssignExerciseScreen> createState() =>
+      _AssignExerciseScreenState();
 }
 
-class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
+class _AssignExerciseScreenState
+    extends ConsumerState<AssignExerciseScreen> {
   final _formKey = GlobalKey<FormState>();
   final _sets = TextEditingController(text: '3');
   final _reps = TextEditingController(text: '10');
@@ -32,8 +31,8 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
   final _rest = TextEditingController(text: '30');
   final _total = TextEditingController(text: '10');
   final _instructions = TextEditingController();
-  final Set<int> _days = {1, 2, 3, 4, 5}; // Monday = 1 ... Sunday = 7
-  final List<String> _times = []; // "HH:MM"
+  final Set<int> _days = {1, 2, 3, 4, 5};
+  final List<String> _times = [];
   RepeatType _repeat = RepeatType.daily;
   Exercise? _exercise;
   String? _appointmentId;
@@ -45,7 +44,14 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
 
   @override
   void dispose() {
-    for (final c in [_sets, _reps, _duration, _rest, _total, _instructions]) {
+    for (final c in [
+      _sets,
+      _reps,
+      _duration,
+      _rest,
+      _total,
+      _instructions,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -62,13 +68,14 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
       setState(() {
         _exercise = picked;
         _pickError = null;
-        // Start from the exercise's suggested prescription
-        if (picked.defaultSets != null) _sets.text = '${picked.defaultSets}';
-        if (picked.defaultReps != null) _reps.text = '${picked.defaultReps}';
-        if (picked.defaultDurationSeconds != null) {
+        if (picked.defaultSets != null)
+          _sets.text = '${picked.defaultSets}';
+        if (picked.defaultReps != null)
+          _reps.text = '${picked.defaultReps}';
+        if (picked.defaultDurationSeconds != null)
           _duration.text = '${picked.defaultDurationSeconds}';
-        }
-        if (picked.defaultRestSeconds != null) _rest.text = '${picked.defaultRestSeconds}';
+        if (picked.defaultRestSeconds != null)
+          _rest.text = '${picked.defaultRestSeconds}';
       });
     }
   }
@@ -100,9 +107,12 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
     if (picked == null) return;
     final value = '${two(picked.hour)}:${two(picked.minute)}';
     if (_times.contains(value) || _times.length >= 6) return;
-    setState(() => _times
-      ..add(value)
-      ..sort());
+    setState(
+      () =>
+          _times
+            ..add(value)
+            ..sort(),
+    );
   }
 
   String? _positive(String? v) {
@@ -118,31 +128,40 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
 
   String _appointmentLabel(Appointment a) {
     final base = '${fmtDateLong(a.start)} · ${fmtTime(a.start)}';
-    return a.status == AppointmentStatus.scheduled ? base : '$base (${a.status.label})';
+    return a.status == AppointmentStatus.scheduled
+        ? base
+        : '$base (${a.status.label})';
   }
 
-  /// The appointment closest to now is the most likely one to link.
   String? _defaultAppointment(List<Appointment> all) {
     if (all.isEmpty) return null;
     final now = DateTime.now();
-    final sorted = [...all]..sort((a, b) =>
-        a.start.difference(now).abs().compareTo(b.start.difference(now).abs()));
+    final sorted = [...all]..sort(
+      (a, b) => a.start
+          .difference(now)
+          .abs()
+          .compareTo(b.start.difference(now).abs()),
+    );
     return sorted.first.id;
   }
 
   Future<void> _save() async {
     final valid = _formKey.currentState!.validate();
-    if (_exercise == null) setState(() => _pickError = 'Choose an exercise');
+    if (_exercise == null)
+      setState(() => _pickError = 'Choose an exercise');
     if (_repeat == RepeatType.weekly && _days.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Select at least one day')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least one day')),
+      );
       return;
     }
     if (!valid || _exercise == null || _appointmentId == null) return;
 
     setState(() => _saving = true);
     try {
-      await ref.read(exerciseRepositoryProvider).assign(
+      await ref
+          .read(exerciseRepositoryProvider)
+          .assign(
             widget.patientId,
             exerciseId: _exercise!.id,
             appointmentId: _appointmentId!,
@@ -161,32 +180,43 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
           );
       ref.invalidate(patientAssignmentsProvider(widget.patientId));
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Exercise assigned')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Exercise assigned')),
+      );
       context.pop();
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(e))));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorText(e))));
     }
   }
 
   Widget _appointmentSection(AsyncValue<List<Appointment>> async) {
     return AsyncBody<List<Appointment>>(
       value: async,
-      onRetry: () => ref.invalidate(patientAppointmentsProvider(widget.patientId)),
+      onRetry:
+          () => ref.invalidate(
+            patientAppointmentsProvider(widget.patientId),
+          ),
       builder: (all) {
         if (all.isEmpty) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                  'Exercises are linked to an appointment. Schedule one for this patient first.'),
+                'Exercises are linked to an appointment. Schedule one for this patient first.',
+              ),
               const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: () async {
-                  await context.push('/admin/appointments/new');
-                  ref.invalidate(patientAppointmentsProvider(widget.patientId));
+                  await context.push(
+                    '/admin/appointments/new?patientId=${widget.patientId}',
+                  );
+                  ref.invalidate(
+                    patientAppointmentsProvider(widget.patientId),
+                  );
                 },
                 icon: const Icon(Icons.event_rounded),
                 label: const Text('Schedule appointment'),
@@ -195,55 +225,77 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
           );
         }
         _appointmentId ??= _defaultAppointment(all);
-        final chosen = all.where((a) => a.id == _appointmentId).firstOrNull;
-        final later = chosen == null
-            ? <Appointment>[]
-            : all
-                .where((a) =>
-                    a.start.isAfter(chosen.start) &&
-                    a.status == AppointmentStatus.scheduled)
-                .toList();
+        final chosen =
+            all.where((a) => a.id == _appointmentId).firstOrNull;
+        final later =
+            chosen == null
+                ? <Appointment>[]
+                : all
+                    .where(
+                      (a) =>
+                          a.start.isAfter(chosen.start) &&
+                          a.status == AppointmentStatus.scheduled,
+                    )
+                    .toList();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             DropdownButtonFormField<String>(
               isExpanded: true,
               initialValue: _appointmentId,
-              decoration: const InputDecoration(labelText: 'Prescribed at appointment'),
+              decoration: const InputDecoration(
+                labelText: 'Prescribed at appointment',
+              ),
               items: [
                 for (final a in all)
                   DropdownMenuItem(
                     value: a.id,
-                    child: Text(_appointmentLabel(a), overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      _appointmentLabel(a),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
               ],
-              onChanged: (v) => setState(() {
-                _appointmentId = v;
-                _nextId = null;
-              }),
-              validator: (v) => v == null ? 'Choose an appointment' : null,
+              onChanged:
+                  (v) => setState(() {
+                    _appointmentId = v;
+                    _nextId = null;
+                  }),
+              validator:
+                  (v) => v == null ? 'Choose an appointment' : null,
             ),
             const SizedBox(height: 14),
             DropdownButtonFormField<String?>(
               key: ValueKey(_appointmentId),
               isExpanded: true,
               initialValue: _nextId,
-              decoration: const InputDecoration(labelText: 'Until next appointment (optional)'),
+              decoration: const InputDecoration(
+                labelText: 'Until next appointment (optional)',
+              ),
               items: [
-                const DropdownMenuItem<String?>(value: null, child: Text('Not linked')),
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('Not linked'),
+                ),
                 for (final a in later)
                   DropdownMenuItem<String?>(
                     value: a.id,
-                    child: Text(_appointmentLabel(a), overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      _appointmentLabel(a),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
               ],
-              onChanged: (v) => setState(() {
-                _nextId = v;
-                final next = all.where((a) => a.id == v).firstOrNull;
-                if (next != null && !dayOnly(next.start).isBefore(_start)) {
-                  _end = dayOnly(next.start);
-                }
-              }),
+              onChanged:
+                  (v) => setState(() {
+                    _nextId = v;
+                    final next =
+                        all.where((a) => a.id == v).firstOrNull;
+                    if (next != null &&
+                        !dayOnly(next.start).isBefore(_start)) {
+                      _end = dayOnly(next.start);
+                    }
+                  }),
             ),
           ],
         );
@@ -255,7 +307,9 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final colors = context.appColors;
-    final appointments = ref.watch(patientAppointmentsProvider(widget.patientId));
+    final appointments = ref.watch(
+      patientAppointmentsProvider(widget.patientId),
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Assign exercise')),
@@ -272,25 +326,38 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
                     onTap: _pickExercise,
                     child: Row(
                       children: [
-                        Icon(Icons.fitness_center_rounded, color: colors.primary),
+                        Icon(
+                          Icons.fitness_center_rounded,
+                          color: colors.primary,
+                        ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Text(
                             _exercise?.title ?? 'Choose an exercise',
                             style: text.titleSmall?.copyWith(
-                                color: _exercise == null ? colors.textSecondary : null),
+                              color:
+                                  _exercise == null
+                                      ? colors.textSecondary
+                                      : null,
+                            ),
                           ),
                         ),
-                        Icon(Icons.unfold_more_rounded, color: colors.textSecondary),
+                        Icon(
+                          Icons.unfold_more_rounded,
+                          color: colors.textSecondary,
+                        ),
                       ],
                     ),
                   ),
                   if (_pickError != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 6, left: 4),
-                      child: Text(_pickError!,
-                          style: text.bodySmall
-                              ?.copyWith(color: Theme.of(context).colorScheme.error)),
+                      child: Text(
+                        _pickError!,
+                        style: text.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
                     ),
                   const SectionHeader('Appointment'),
                   _appointmentSection(appointments),
@@ -301,7 +368,9 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
                         child: TextFormField(
                           controller: _sets,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Sets'),
+                          decoration: const InputDecoration(
+                            labelText: 'Sets',
+                          ),
                           validator: _positive,
                         ),
                       ),
@@ -310,7 +379,9 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
                         child: TextFormField(
                           controller: _reps,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Reps'),
+                          decoration: const InputDecoration(
+                            labelText: 'Reps',
+                          ),
                           validator: _positive,
                         ),
                       ),
@@ -324,7 +395,9 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
                           controller: _duration,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
-                              labelText: 'Hold (seconds)', hintText: 'Optional'),
+                            labelText: 'Hold (seconds)',
+                            hintText: 'Optional',
+                          ),
                           validator: _optionalNumber,
                         ),
                       ),
@@ -334,7 +407,9 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
                           controller: _rest,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
-                              labelText: 'Rest (seconds)', hintText: 'Optional'),
+                            labelText: 'Rest (seconds)',
+                            hintText: 'Optional',
+                          ),
                           validator: _optionalNumber,
                         ),
                       ),
@@ -346,15 +421,18 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
                     minLines: 2,
                     maxLines: 4,
                     decoration: const InputDecoration(
-                        labelText: 'Notes for the patient (optional)',
-                        alignLabelWithHint: true),
+                      labelText: 'Notes for the patient (optional)',
+                      alignLabelWithHint: true,
+                    ),
                   ),
                   const SectionHeader('Schedule'),
                   TextFormField(
                     controller: _total,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                        labelText: 'Total sessions', helperText: 'For example 10 sessions'),
+                      labelText: 'Total sessions',
+                      helperText: 'For example 10 sessions',
+                    ),
                     validator: _positive,
                   ),
                   const SizedBox(height: 14),
@@ -366,7 +444,8 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
                         ChoiceChip(
                           label: Text(t.label),
                           selected: _repeat == t,
-                          onSelected: (_) => setState(() => _repeat = t),
+                          onSelected:
+                              (_) => setState(() => _repeat = t),
                         ),
                     ],
                   ),
@@ -380,8 +459,13 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
                           FilterChip(
                             label: Text(weekdayShort(d)),
                             selected: _days.contains(d),
-                            onSelected: (on) =>
-                                setState(() => on ? _days.add(d) : _days.remove(d)),
+                            onSelected:
+                                (on) => setState(
+                                  () =>
+                                      on
+                                          ? _days.add(d)
+                                          : _days.remove(d),
+                                ),
                           ),
                       ],
                     ),
@@ -394,7 +478,9 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
                           onTap: () => _pickDate(isStart: true),
                           borderRadius: BorderRadius.circular(12),
                           child: InputDecorator(
-                            decoration: const InputDecoration(labelText: 'Starts'),
+                            decoration: const InputDecoration(
+                              labelText: 'Starts',
+                            ),
                             child: Text(fmtDate(_start)),
                           ),
                         ),
@@ -405,7 +491,9 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
                           onTap: () => _pickDate(isStart: false),
                           borderRadius: BorderRadius.circular(12),
                           child: InputDecorator(
-                            decoration: const InputDecoration(labelText: 'Ends'),
+                            decoration: const InputDecoration(
+                              labelText: 'Ends',
+                            ),
                             child: Text(fmtDate(_end)),
                           ),
                         ),
@@ -420,11 +508,15 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
                       for (final t in _times)
                         InputChip(
                           label: Text(t),
-                          onDeleted: () => setState(() => _times.remove(t)),
+                          onDeleted:
+                              () => setState(() => _times.remove(t)),
                         ),
                       if (_times.length < 6)
                         ActionChip(
-                          avatar: const Icon(Icons.add_rounded, size: 18),
+                          avatar: const Icon(
+                            Icons.add_rounded,
+                            size: 18,
+                          ),
                           label: const Text('Add time'),
                           onPressed: _addTime,
                         ),
@@ -435,15 +527,18 @@ class _AssignExerciseScreenState extends ConsumerState<AssignExerciseScreen> {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         'With ${_times.length} reminder times, the exercise is done ${_times.length} times a day.',
-                        style: text.bodySmall?.copyWith(color: colors.textSecondary),
+                        style: text.bodySmall?.copyWith(
+                          color: colors.textSecondary,
+                        ),
                       ),
                     ),
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: _saving ? null : _save,
-                    child: _saving
-                        ? const ButtonSpinner()
-                        : const Text('Assign exercise'),
+                    child:
+                        _saving
+                            ? const ButtonSpinner()
+                            : const Text('Assign exercise'),
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -479,10 +574,14 @@ class _ExercisePicker extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             itemCount: items.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) => AppCard(
-              onTap: () => Navigator.pop(context, items[i]),
-              child: Text(items[i].title, style: Theme.of(context).textTheme.titleSmall),
-            ),
+            itemBuilder:
+                (_, i) => AppCard(
+                  onTap: () => Navigator.pop(context, items[i]),
+                  child: Text(
+                    items[i].title,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
           );
         },
       ),

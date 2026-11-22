@@ -1,76 +1,162 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/appointment.dart';
 import 'api_guard.dart';
-import 'providers.dart'; // expected to expose apiClientProvider
+import 'providers.dart';
 
-List<Appointment> _list(dynamic data) => (unwrap(data, 'appointments') as List)
-    .map((e) => Appointment.fromJson(e as Map<String, dynamic>))
-    .toList();
+List<T> _list<T>(
+  dynamic data,
+  String key,
+  T Function(Map<String, dynamic>) f,
+) =>
+    (unwrap(data, key) as List)
+        .map((e) => f(e as Map<String, dynamic>))
+        .toList();
 
-Appointment _one(dynamic data) =>
-    Appointment.fromJson(unwrap(data, 'appointment') as Map<String, dynamic>);
+Map<String, dynamic> _one(dynamic data, String key) =>
+    unwrap(data, key) as Map<String, dynamic>;
+
+typedef AppointmentKey = ({String id, bool mine});
 
 class AppointmentRepository {
   AppointmentRepository(this._dio);
   final Dio _dio;
 
-  // ---- Therapist ----
-  Future<List<Appointment>> inRange(DateTime from, DateTime to) =>
-      guardApi(() async => _list((await _dio.get('/appointments',
-              queryParameters: {
-                'from': from.toUtc().toIso8601String(),
-                'to': to.toUtc().toIso8601String(),
-              }))
-          .data));
+  // ---- Admin ----
+  Future<List<Appointment>> list({
+    DateTime? from,
+    DateTime? to,
+    String? patientId,
+  }) => guardApi(
+    () async => _list(
+      (await _dio.get(
+        '/appointments',
+        queryParameters: {
+          if (from != null) 'from': from.toUtc().toIso8601String(),
+          if (to != null) 'to': to.toUtc().toIso8601String(),
+          if (patientId != null) 'patientId': patientId,
+        },
+      )).data,
+      'appointments',
+      Appointment.fromJson,
+    ),
+  );
 
-  Future<Appointment> get(String id, {required bool mine}) => guardApi(
-      () async => _one((await _dio.get(mine ? '/me/appointments/$id' : '/appointments/$id')).data));
+  Future<Appointment> get(String id) => guardApi(
+    () async => Appointment.fromJson(
+      _one((await _dio.get('/appointments/$id')).data, 'appointment'),
+    ),
+  );
 
-  Future<void> create(Appointment a) =>
-      guardApi(() => _dio.post('/appointments', data: a.toJson()));
+  /// Standard create (single appointment).
+  Future<Appointment> create(Appointment a) => guardApi(
+    () async => Appointment.fromJson(
+      _one(
+        (await _dio.post('/appointments', data: a.toJson())).data,
+        'appointment',
+      ),
+    ),
+  );
 
-  Future<void> update(String id, Appointment a) =>
-      guardApi(() => _dio.patch('/appointments/$id', data: a.toJson()));
+  /// 👇 Create with recurrence payload (returns the first appointment;
+  /// the backend returns an `appointments` array, but we only need one
+  /// to confirm success).
+  Future<List<Appointment>> createWithRecurrence(
+    Map<String, dynamic> payload,
+  ) => guardApi(
+    () async => _list(
+      (await _dio.post('/appointments', data: payload)).data,
+      'appointments',
+      Appointment.fromJson,
+    ),
+  );
 
-  /// Partial update, e.g. {'status': 'completed'} or {'payment': {'status': 'paid'}}.
+  Future<Appointment> update(String id, Appointment a) => guardApi(
+    () async => Appointment.fromJson(
+      _one(
+        (await _dio.patch(
+          '/appointments/$id',
+          data: a.toJson(),
+        )).data,
+        'appointment',
+      ),
+    ),
+  );
+
   Future<void> patch(String id, Map<String, dynamic> fields) =>
       guardApi(() => _dio.patch('/appointments/$id', data: fields));
 
   Future<void> delete(String id) =>
       guardApi(() => _dio.delete('/appointments/$id'));
 
-  /// All appointments of one patient (used to link exercises to an appointment).
-  Future<List<Appointment>> forPatient(String patientId) => guardApi(() async =>
-      _list((await _dio.get('/appointments',
-              queryParameters: {'patientId': patientId}))
-          .data));
-
   // ---- Patient ----
-  Future<List<Appointment>> mine() =>
-      guardApi(() async => _list((await _dio.get('/me/appointments')).data));
+  Future<List<Appointment>> listMine({
+    DateTime? from,
+    DateTime? to,
+  }) => guardApi(
+    () async => _list(
+      (await _dio.get(
+        '/me/appointments',
+        queryParameters: {
+          if (from != null) 'from': from.toUtc().toIso8601String(),
+          if (to != null) 'to': to.toUtc().toIso8601String(),
+        },
+      )).data,
+      'appointments',
+      Appointment.fromJson,
+    ),
+  );
+
+  Future<Appointment> getMine(String id) => guardApi(
+    () async => Appointment.fromJson(
+      _one(
+        (await _dio.get('/me/appointments/$id')).data,
+        'appointment',
+      ),
+    ),
+  );
+
+  Future<Appointment> byKey(AppointmentKey key) =>
+      key.mine ? getMine(key.id) : get(key.id);
 }
 
+// ---- Providers ----
 final appointmentRepositoryProvider = Provider<AppointmentRepository>(
-    (ref) => AppointmentRepository(ref.watch(apiClientProvider).dio));
+  (ref) => AppointmentRepository(ref.watch(apiClientProvider).dio),
+);
 
-final appointmentsProvider = FutureProvider.autoDispose
-    .family<List<Appointment>, DateTimeRange>((ref, range) => ref
-        .watch(appointmentRepositoryProvider)
-        .inRange(range.start, range.end));
+final appointmentProvider = FutureProvider.autoDispose.family<
+  Appointment,
+  AppointmentKey
+>((ref, key) => ref.watch(appointmentRepositoryProvider).byKey(key));
 
-typedef AppointmentKey = ({String id, bool mine});
+/// Admin home "Today's schedule"
+final appointmentsInRangeProvider = FutureProvider.autoDispose
+    .family<List<Appointment>, ({DateTime from, DateTime to})>(
+      (ref, range) => ref
+          .watch(appointmentRepositoryProvider)
+          .list(from: range.from, to: range.to),
+    );
 
-final appointmentProvider = FutureProvider.autoDispose
-    .family<Appointment, AppointmentKey>((ref, key) => ref
-        .watch(appointmentRepositoryProvider)
-        .get(key.id, mine: key.mine));
+/// Patient home "Next appointment"
+final myAppointmentsInRangeProvider = FutureProvider.autoDispose
+    .family<List<Appointment>, ({DateTime from, DateTime to})>(
+      (ref, range) => ref
+          .watch(appointmentRepositoryProvider)
+          .listMine(from: range.from, to: range.to),
+    );
 
+/// All appointments for a specific patient (used in AssignExerciseScreen)
 final patientAppointmentsProvider = FutureProvider.autoDispose
-    .family<List<Appointment>, String>((ref, patientId) =>
-        ref.watch(appointmentRepositoryProvider).forPatient(patientId));
+    .family<List<Appointment>, String>(
+      (ref, patientId) => ref
+          .watch(appointmentRepositoryProvider)
+          .list(patientId: patientId),
+    );
 
-final myAppointmentsProvider = FutureProvider.autoDispose<List<Appointment>>(
-    (ref) => ref.watch(appointmentRepositoryProvider).mine());
+/// All appointments for the logged-in patient (used in MyAppointmentsScreen)
+final myAppointmentsProvider =
+    FutureProvider.autoDispose<List<Appointment>>(
+      (ref) => ref.watch(appointmentRepositoryProvider).listMine(),
+    );

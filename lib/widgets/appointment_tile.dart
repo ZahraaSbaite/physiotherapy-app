@@ -30,10 +30,6 @@ class AppointmentStatusChip extends StatelessWidget {
         fg = colors.error;
         border = colors.error.withValues(alpha: 0.3);
         break;
-      default:
-        bg = colors.secondary;
-        fg = colors.primary;
-        border = colors.border;
     }
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -81,10 +77,10 @@ class AppointmentTile extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final colors = context.appColors;
     final a = appointment;
+
     return AppCard(
       onTap: onTap,
-      isHighlighted:
-          _isToday, // 👈 today's card pops with a terracotta ring
+      isHighlighted: _isToday,
       child: Row(
         children: [
           Column(
@@ -121,6 +117,30 @@ class AppointmentTile extends StatelessWidget {
                 if (_isToday) const SizedBox(height: 6),
                 if (_isToday)
                   const AccentBadge(label: 'Today', icon: Icons.bolt),
+
+                // 👇 FIX: Show payment summary on the calendar card if it exists
+                if (a.hasPayment) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.payments_outlined,
+                        size: 14,
+                        color: colors.textSecondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          a.payment!.summary,
+                          style: text.labelSmall?.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

@@ -12,22 +12,24 @@ import '../widgets/page_helpers.dart';
 
 String prescriptionText(ExerciseAssignment a) {
   final parts = <String>[];
-  if (a.sets != null && a.reps != null) {
+  if (a.sets != null && a.reps != null)
     parts.add('${a.sets} sets × ${a.reps} reps');
-  } else if (a.reps != null) {
+  else if (a.reps != null)
     parts.add('${a.reps} reps');
-  }
-  if (a.durationSeconds != null && a.durationSeconds! > 0) {
+  if (a.durationSeconds != null && a.durationSeconds! > 0)
     parts.add('hold ${fmtSeconds(a.durationSeconds!)}');
-  }
   return parts.isEmpty ? 'See instructions' : parts.join(' · ');
 }
 
-/// The "6/10" progress of an assignment.
 String progressText(ExerciseAssignment a) =>
     '${a.doneCount}/${a.totalTimes} sessions done';
 
-/// Patient: today's exercises.
+bool _isOverdue(ExerciseAssignment a) {
+  if (a.endDate == null) return false;
+  return a.endDate!.isBefore(DateTime.now()) &&
+      a.doneCount < a.totalTimes;
+}
+
 class MyExercisesScreen extends ConsumerWidget {
   const MyExercisesScreen({super.key});
 
@@ -44,12 +46,14 @@ class MyExercisesScreen extends ConsumerWidget {
           IconButton(
             tooltip: 'History',
             icon: const Icon(Icons.history_rounded),
-            onPressed: () => context.push('/patient/exercises/history'),
+            onPressed:
+                () => context.push('/patient/exercises/history'),
           ),
         ],
       ),
       body: RefreshPage(
-        onRefresh: () async => ref.refresh(todayAssignmentsProvider.future),
+        onRefresh:
+            () async => ref.refresh(todayAssignmentsProvider.future),
         child: AsyncBody<List<ExerciseAssignment>>(
           value: async,
           onRetry: () => ref.invalidate(todayAssignmentsProvider),
@@ -59,21 +63,29 @@ class MyExercisesScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Today', style: text.headlineSmall),
-                Text(fmtDateLong(DateTime.now()),
-                    style: text.bodyMedium?.copyWith(color: colors.textSecondary)),
+                Text(
+                  fmtDateLong(DateTime.now()),
+                  style: text.bodyMedium?.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 if (items.isEmpty)
                   const EmptyState(
                     icon: Icons.self_improvement_rounded,
                     title: 'Nothing scheduled today',
-                    message: 'Your therapist hasn’t assigned exercises for today.',
+                    message:
+                        'Your therapist hasn’t assigned exercises for today.',
                   )
                 else ...[
                   AppCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('$done of ${items.length} completed', style: text.titleMedium),
+                        Text(
+                          '$done of ${items.length} completed',
+                          style: text.titleMedium,
+                        ),
                         const SizedBox(height: 10),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
@@ -92,32 +104,76 @@ class MyExercisesScreen extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: AppCard(
-                        onTap: () => context.push('/patient/exercises/${a.id}'),
+                        onTap:
+                            () => context.push(
+                              '/patient/exercises/${a.id}',
+                            ),
                         child: Row(
                           children: [
                             Icon(
                               a.completed
                                   ? Icons.check_circle_rounded
-                                  : Icons.radio_button_unchecked_rounded,
-                              color: a.completed ? colors.primary : colors.textSecondary,
+                                  : Icons
+                                      .radio_button_unchecked_rounded,
+                              color:
+                                  a.completed
+                                      ? colors.primary
+                                      : colors.textSecondary,
                             ),
                             const SizedBox(width: 14),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                 children: [
-                                  Text(a.exercise.title, style: text.titleSmall),
+                                  Text(
+                                    a.exercise.title,
+                                    style: text.titleSmall,
+                                  ),
                                   const SizedBox(height: 2),
-                                  Text(prescriptionText(a),
-                                      style: text.bodySmall
-                                          ?.copyWith(color: colors.textSecondary)),
-                                  Text(progressText(a),
-                                      style: text.bodySmall
-                                          ?.copyWith(color: colors.textSecondary)),
+                                  Text(
+                                    prescriptionText(a),
+                                    style: text.bodySmall?.copyWith(
+                                      color: colors.textSecondary,
+                                    ),
+                                  ),
+                                  Text(
+                                    progressText(a),
+                                    style: text.bodySmall?.copyWith(
+                                      color: colors.textSecondary,
+                                    ),
+                                  ),
+                                  if (_isOverdue(a)) ...[
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      padding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                      decoration: BoxDecoration(
+                                        color: colors.errorSoft,
+                                        borderRadius:
+                                            BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        'Overdue',
+                                        style: text.labelSmall
+                                            ?.copyWith(
+                                              color: colors.error,
+                                              fontWeight:
+                                                  FontWeight.w600,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right_rounded, color: colors.textSecondary),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: colors.textSecondary,
+                            ),
                           ],
                         ),
                       ),
