@@ -1,17 +1,12 @@
 # physio_app
 
-A new Flutter project.
+Flutter app for a physiotherapist (admin) and their patients, with a Node/Express/MongoDB backend in `backend/`.
 
-## Getting Started
+## Run
+- Backend: `cd backend && npm install`, create `.env` (`MONGODB_URI`, `JWT_SECRET`), then `npm run dev`.
+  Create the first admin with `node src/scripts/createAdmin.js`.
+- App: `flutter pub get && flutter run` (use `--dart-define=API_URL=http://<ip>:5000/api` on a real phone).
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-# physio-app
+The API contract is in [`backend/API.md`](backend/API.md).
+Offline checks: `node backend/src/scripts/testSchedule.js`.
+# physiotherapy-app
