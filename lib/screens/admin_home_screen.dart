@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/app_theme.dart';
 import '../services/auth_controller.dart';
+import '../widgets/announcements_preview.dart';
 import '../widgets/appear_animation.dart';
 import '../widgets/home_widgets.dart';
 import '../widgets/page_body.dart';
@@ -49,6 +50,8 @@ class AdminHomeScreen extends ConsumerWidget {
                 index: 3,
                 child: SectionTitle('Your patients'),
               ),
+              const AppearAnimation(index: 3, child: AdminAnnouncementsCard()),
+              const SizedBox(height: AppSpacing.md),
               const AppearAnimation(
                 index: 4,
                 child: ComingSoonCard(

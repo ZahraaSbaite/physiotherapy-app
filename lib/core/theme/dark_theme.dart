@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'app_colors.dart';
 import 'app_theme.dart';
 
@@ -41,6 +40,7 @@ final ColorScheme _darkScheme = ColorScheme(
   surfaceTint: Colors.transparent,
 );
 
-/// The dark theme. Its own palette (deep green-black surfaces, soft sage
-/// accents), not an inversion of the light theme.
-final ThemeData darkTheme = AppTheme.build(scheme: _darkScheme, colors: _c);
+final ThemeData darkTheme = AppTheme.build(
+  scheme: _darkScheme,
+  colors: _c,
+);

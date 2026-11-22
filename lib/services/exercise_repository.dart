@@ -27,7 +27,7 @@ class ExerciseRepository {
       guardApi(() => _dio.post('/exercises', data: e.toJson()));
 
   Future<void> update(String id, Exercise e) =>
-      guardApi(() => _dio.put('/exercises/$id', data: e.toJson()));
+      guardApi(() => _dio.patch('/exercises/$id', data: e.toJson()));
 
   Future<void> delete(String id) =>
       guardApi(() => _dio.delete('/exercises/$id'));
@@ -42,23 +42,41 @@ class ExerciseRepository {
   Future<void> assign(
     String patientId, {
     required String exerciseId,
-    required int sets,
-    required int reps,
+    required String appointmentId,
+    String? nextAppointmentId,
+    int? sets,
+    int? reps,
     int? durationSeconds,
     int? restSeconds,
-    required List<int> daysOfWeek,
+    String? instructions,
     required DateTime startDate,
-    DateTime? endDate,
+    required DateTime endDate,
+    required int totalTimes,
+    required RepeatType repeatType,
+    List<int> daysOfWeek = const [],
+    List<String> reminderTimes = const [],
   }) =>
       guardApi(() => _dio.post('/patients/$patientId/assignments', data: {
             'exerciseId': exerciseId,
-            'sets': sets,
-            'reps': reps,
+            'appointmentId': appointmentId,
+            if (nextAppointmentId != null) 'nextAppointmentId': nextAppointmentId,
+            if (sets != null) 'sets': sets,
+            if (reps != null) 'reps': reps,
             if (durationSeconds != null) 'durationSeconds': durationSeconds,
             if (restSeconds != null) 'restSeconds': restSeconds,
-            'daysOfWeek': daysOfWeek,
+            if (instructions != null && instructions.isNotEmpty)
+              'instructions': instructions,
             'startDate': isoDate(startDate),
-            if (endDate != null) 'endDate': isoDate(endDate),
+            'endDate': isoDate(endDate),
+            'totalTimes': totalTimes,
+            'repeat': {
+              'type': repeatType.api,
+              // The app counts Monday = 1 ... Sunday = 7; the server Sunday = 0.
+              'daysOfWeek': repeatType == RepeatType.weekly
+                  ? (daysOfWeek.map(weekdayToApi).toList()..sort())
+                  : <int>[],
+            },
+            'reminderTimes': reminderTimes,
           }));
 
   Future<void> removeAssignment(String assignmentId) =>
@@ -83,11 +101,12 @@ class ExerciseRepository {
       ExerciseAssignment.fromJson(
           _one((await _dio.get('/me/assignments/$id')).data, 'assignment')));
 
-  Future<void> complete(String assignmentId,
-          {required int painLevel, String? notes}) =>
+  /// Pain level is optional (0 to 10). The note is optional too.
+  Future<void> complete(String assignmentId, {int? painLevel, String? patientNote}) =>
       guardApi(() => _dio.post('/me/assignments/$assignmentId/complete', data: {
-            'painLevel': painLevel,
-            if (notes != null && notes.isNotEmpty) 'notes': notes,
+            if (painLevel != null) 'painLevel': painLevel,
+            if (patientNote != null && patientNote.isNotEmpty)
+              'patientNote': patientNote,
             'date': isoDate(DateTime.now()),
           }));
 

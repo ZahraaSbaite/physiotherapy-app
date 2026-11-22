@@ -122,11 +122,12 @@ class AppointmentDetailScreen extends ConsumerWidget {
                     row('Date', fmtDateLong(a.start)),
                     row('Time', '${fmtTime(a.start)} – ${fmtTime(a.end)}'),
                     row('Duration', '${a.durationMinutes} minutes'),
+                    if ((a.title ?? '').isNotEmpty) row('Title', a.title!),
+                    if ((a.location ?? '').isNotEmpty) row('Location', a.location!),
                     row('Notes', a.notes ?? ''),
-                    row('Payment',
-                        a.amount == null
-                            ? a.paymentStatus.label
-                            : '${a.paymentStatus.label} · ${a.amount!.toStringAsFixed(2)}'),
+                    if (!readOnly || a.payment != null)
+                      row('Payment', a.payment?.summary ?? PaymentStatus.unpaid.label),
+                    if (a.payment?.method != null) row('Method', a.payment!.method!.label),
                   ],
                 ),
               ),
@@ -158,7 +159,11 @@ class AppointmentDetailScreen extends ConsumerWidget {
                     _patch(
                       context,
                       ref,
-                      {'paymentStatus': (paid ? PaymentStatus.unpaid : PaymentStatus.paid).api},
+                      {
+                        'payment': {
+                          'status': (paid ? PaymentStatus.unpaid : PaymentStatus.paid).api,
+                        },
+                      },
                       paid ? 'Marked as unpaid' : 'Marked as paid',
                     );
                   },

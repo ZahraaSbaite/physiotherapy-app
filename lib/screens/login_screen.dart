@@ -7,7 +7,7 @@ import '../services/api_exception.dart';
 import '../utils/validators.dart';
 import '../services/auth_controller.dart';
 import '../widgets/app_states.dart';
-import '../widgets/app_tile.dart';
+import '../widgets/brand_mark.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -77,21 +77,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Align(
-                        child: IconTile(
-                          icon: Icons.health_and_safety_outlined,
-                          size: 72,
-                        ),
+                        alignment: Alignment.centerLeft,
+                        child: BrandMark(size: 56),
                       ),
                       const SizedBox(height: AppSpacing.xl),
-                      Text(
-                        'iPhysio',
-                        textAlign: TextAlign.center,
-                        style: text.headlineMedium,
-                      ),
+                      Text('Welcome back', style: text.headlineMedium),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'Log in to continue',
-                        textAlign: TextAlign.center,
+                        'Log in to your iPhysio account.',
                         style: text.bodyLarge?.copyWith(color: c.textSecondary),
                       ),
                       const SizedBox(height: AppSpacing.xxl),
@@ -155,7 +148,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 24),
                       Text(
                         'Accounts are created by your therapist.',
-                        textAlign: TextAlign.center,
+                        textAlign: TextAlign.start,
                         style: text.bodySmall,
                       ),
                     ],

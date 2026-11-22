@@ -22,7 +22,6 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
-  final _condition = TextEditingController();
   final _notes = TextEditingController();
   final _password = TextEditingController();
   DateTime? _dob;
@@ -34,7 +33,7 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
 
   @override
   void dispose() {
-    for (final c in [_name, _email, _phone, _condition, _notes, _password]) {
+    for (final c in [_name, _email, _phone, _notes, _password]) {
       c.dispose();
     }
     super.dispose();
@@ -46,8 +45,7 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
     _name.text = p.name;
     _email.text = p.email;
     _phone.text = p.phone ?? '';
-    _condition.text = p.condition ?? '';
-    _notes.text = p.notes ?? '';
+    _notes.text = p.medicalNotes ?? '';
     _dob = p.dateOfBirth;
   }
 
@@ -72,8 +70,7 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
       email: _email.text.trim(),
       phone: _phone.text.trim(),
       dateOfBirth: _dob,
-      condition: _condition.text.trim(),
-      notes: _notes.text.trim(),
+      medicalNotes: _notes.text.trim(),
     );
     try {
       if (_isEdit) {
@@ -173,17 +170,11 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
-                  controller: _condition,
-                  decoration: const InputDecoration(
-                      labelText: 'Condition / diagnosis (optional)'),
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
                   controller: _notes,
                   minLines: 3,
                   maxLines: 6,
                   decoration: const InputDecoration(
-                      labelText: 'Notes (optional)', alignLabelWithHint: true),
+                      labelText: 'Medical notes (optional)', alignLabelWithHint: true),
                 ),
                 if (!_isEdit) ...[
                   const SizedBox(height: 14),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'app_colors.dart';
 import 'app_theme.dart';
 
@@ -41,5 +40,7 @@ final ColorScheme _lightScheme = ColorScheme(
   surfaceTint: Colors.transparent,
 );
 
-/// The light theme (warm off-white pages, white cards, deep green accents).
-final ThemeData lightTheme = AppTheme.build(scheme: _lightScheme, colors: _c);
+final ThemeData lightTheme = AppTheme.build(
+  scheme: _lightScheme,
+  colors: _c,
+);

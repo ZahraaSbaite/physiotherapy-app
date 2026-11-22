@@ -5,8 +5,7 @@ class Patient {
     required this.email,
     this.phone,
     this.dateOfBirth,
-    this.condition,
-    this.notes,
+    this.medicalNotes,
     this.isActive = true,
   });
 
@@ -15,8 +14,9 @@ class Patient {
   final String email;
   final String? phone;
   final DateTime? dateOfBirth;
-  final String? condition;
-  final String? notes;
+
+  /// Private notes for the therapist. Only returned when a single patient is loaded.
+  final String? medicalNotes;
   final bool isActive;
 
   String get initials {
@@ -36,18 +36,17 @@ class Patient {
       dateOfBirth: json['dateOfBirth'] != null
           ? DateTime.tryParse(json['dateOfBirth'].toString())
           : null,
-      condition: json['condition'] as String?,
-      notes: json['notes'] as String?,
+      medicalNotes: json['medicalNotes'] as String?,
       isActive: json['isActive'] as bool? ?? true,
     );
   }
 
+  // Empty strings and null clear an optional field on the server (PATCH).
   Map<String, dynamic> toJson() => {
         'name': name,
         'email': email,
-        if (phone != null && phone!.isNotEmpty) 'phone': phone,
-        if (dateOfBirth != null) 'dateOfBirth': dateOfBirth!.toIso8601String(),
-        if (condition != null && condition!.isNotEmpty) 'condition': condition,
-        if (notes != null && notes!.isNotEmpty) 'notes': notes,
+        'phone': phone ?? '',
+        'dateOfBirth': dateOfBirth?.toIso8601String(),
+        'medicalNotes': medicalNotes ?? '',
       };
 }

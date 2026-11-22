@@ -33,14 +33,20 @@ class AppointmentRepository {
       guardApi(() => _dio.post('/appointments', data: a.toJson()));
 
   Future<void> update(String id, Appointment a) =>
-      guardApi(() => _dio.put('/appointments/$id', data: a.toJson()));
+      guardApi(() => _dio.patch('/appointments/$id', data: a.toJson()));
 
-  /// Partial update, e.g. {'status': 'completed'} or {'paymentStatus': 'paid'}.
+  /// Partial update, e.g. {'status': 'completed'} or {'payment': {'status': 'paid'}}.
   Future<void> patch(String id, Map<String, dynamic> fields) =>
       guardApi(() => _dio.patch('/appointments/$id', data: fields));
 
   Future<void> delete(String id) =>
       guardApi(() => _dio.delete('/appointments/$id'));
+
+  /// All appointments of one patient (used to link exercises to an appointment).
+  Future<List<Appointment>> forPatient(String patientId) => guardApi(() async =>
+      _list((await _dio.get('/appointments',
+              queryParameters: {'patientId': patientId}))
+          .data));
 
   // ---- Patient ----
   Future<List<Appointment>> mine() =>
@@ -61,6 +67,10 @@ final appointmentProvider = FutureProvider.autoDispose
     .family<Appointment, AppointmentKey>((ref, key) => ref
         .watch(appointmentRepositoryProvider)
         .get(key.id, mine: key.mine));
+
+final patientAppointmentsProvider = FutureProvider.autoDispose
+    .family<List<Appointment>, String>((ref, patientId) =>
+        ref.watch(appointmentRepositoryProvider).forPatient(patientId));
 
 final myAppointmentsProvider = FutureProvider.autoDispose<List<Appointment>>(
     (ref) => ref.watch(appointmentRepositoryProvider).mine());

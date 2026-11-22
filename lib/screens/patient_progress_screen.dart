@@ -57,20 +57,34 @@ class PatientProgressScreen extends ConsumerWidget {
   }
 
   String _prescription(ExerciseAssignment a) {
-    final parts = ['${a.sets} × ${a.reps}'];
+    final parts = <String>[];
+    if (a.sets != null && a.reps != null) {
+      parts.add('${a.sets} × ${a.reps}');
+    } else if (a.reps != null) {
+      parts.add('${a.reps} reps');
+    }
     if (a.durationSeconds != null) {
       parts.add('hold ${fmtSeconds(a.durationSeconds!)}');
     }
     if (a.restSeconds != null) {
       parts.add('rest ${fmtSeconds(a.restSeconds!)}');
     }
-    return parts.join(', ');
+    return parts.isEmpty ? 'No sets or reps set' : parts.join(', ');
   }
 
-  String _days(List<int> days) {
-    if (days.isEmpty || days.length == 7) return 'Every day';
-    final sorted = [...days]..sort();
-    return sorted.map(weekdayShort).join(', ');
+  String _schedule(ExerciseAssignment a) {
+    final range = (a.startDate != null && a.endDate != null)
+        ? ' · ${fmtDate(a.startDate!)} to ${fmtDate(a.endDate!)}'
+        : '';
+    switch (a.repeatType) {
+      case RepeatType.daily:
+        return 'Every day$range';
+      case RepeatType.weekly:
+        final sorted = [...a.daysOfWeek]..sort();
+        return '${sorted.map(weekdayShort).join(', ')}$range';
+      case RepeatType.auto:
+        return 'Spread evenly$range';
+    }
   }
 
   @override
@@ -200,10 +214,10 @@ class PatientProgressScreen extends ConsumerWidget {
                                     color: colors.textSecondary,
                                   ),
                                 ),
-                                if ((c.notes ?? '').isNotEmpty) ...[
+                                if ((c.patientNote ?? '').isNotEmpty) ...[
                                   const SizedBox(height: 8),
                                   Text(
-                                    c.notes!,
+                                    c.patientNote!,
                                     style: text.bodyMedium,
                                   ),
                                 ],
@@ -256,9 +270,26 @@ class PatientProgressScreen extends ConsumerWidget {
                                       ),
                                     ),
                                     Text(
-                                      _days(a.daysOfWeek),
+                                      _schedule(a),
                                       style: text.bodySmall?.copyWith(
                                         color: colors.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      '${a.doneCount}/${a.totalTimes} sessions done',
+                                      style: text.labelMedium?.copyWith(
+                                        color: colors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: LinearProgressIndicator(
+                                        value: a.progress,
+                                        minHeight: 6,
+                                        backgroundColor: colors.secondary,
+                                        color: colors.primary,
                                       ),
                                     ),
                                   ],

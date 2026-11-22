@@ -16,7 +16,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
   final String assignmentId;
 
   Future<void> _complete(BuildContext context, WidgetRef ref) async {
-    final result = await showModalBottomSheet<({int pain, String notes})>(
+    final result = await showModalBottomSheet<({int? pain, String notes})>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -27,7 +27,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
       await ref.read(exerciseRepositoryProvider).complete(
             assignmentId,
             painLevel: result.pain,
-            notes: result.notes,
+            patientNote: result.notes,
           );
       ref.invalidate(myAssignmentProvider(assignmentId));
       ref.invalidate(todayAssignmentsProvider);
@@ -70,16 +70,24 @@ class ExerciseDetailScreen extends ConsumerWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if ((ex.imageUrl ?? '').isNotEmpty)
+                if (ex.imageUrls.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.network(
-                        ex.imageUrl!,
-                        height: 200,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    child: SizedBox(
+                      height: 200,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: ex.imageUrls.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        itemBuilder: (_, i) => ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.network(
+                            ex.imageUrls[i],
+                            height: 200,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -89,14 +97,31 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    chip('${a.sets} sets'),
-                    chip('${a.reps} reps'),
+                    if (a.sets != null) chip('${a.sets} sets'),
+                    if (a.reps != null) chip('${a.reps} reps'),
                     if (a.durationSeconds != null && a.durationSeconds! > 0)
                       chip('Hold ${fmtSeconds(a.durationSeconds!)}'),
                     if (a.restSeconds != null && a.restSeconds! > 0)
                       chip('Rest ${fmtSeconds(a.restSeconds!)}'),
                   ],
                 ),
+                const SizedBox(height: 14),
+                Text('${a.doneCount}/${a.totalTimes} sessions done',
+                    style: text.titleSmall?.copyWith(color: colors.primary)),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: a.progress,
+                    minHeight: 8,
+                    backgroundColor: colors.secondary,
+                    color: colors.primary,
+                  ),
+                ),
+                if ((a.instructions ?? '').isNotEmpty) ...[
+                  const SectionHeader('From your therapist'),
+                  AppCard(child: Text(a.instructions!, style: text.bodyMedium)),
+                ],
                 const SectionHeader('Instructions'),
                 AppCard(child: Text(ex.description, style: text.bodyMedium)),
                 if ((ex.precautions ?? '').isNotEmpty) ...[
@@ -156,7 +181,7 @@ class _FeedbackSheet extends StatefulWidget {
 
 class _FeedbackSheetState extends State<_FeedbackSheet> {
   final _notes = TextEditingController();
-  double _pain = 0;
+  double? _pain; // null = not reported
 
   @override
   void dispose() {
@@ -177,15 +202,30 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
         children: [
           Text('How did it feel?', style: text.titleLarge),
           const SizedBox(height: 16),
-          Text('Pain level: ${_pain.round()} / 10', style: text.titleSmall),
-          Text('0 means no pain, 10 means the worst pain.',
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                    _pain == null
+                        ? 'Pain level (optional)'
+                        : 'Pain level: ${_pain!.round()} / 10',
+                    style: text.titleSmall),
+              ),
+              if (_pain != null)
+                TextButton(
+                  onPressed: () => setState(() => _pain = null),
+                  child: const Text('Clear'),
+                ),
+            ],
+          ),
+          Text('0 means no pain, 10 means the worst pain. You can skip this.',
               style: text.bodySmall?.copyWith(color: colors.textSecondary)),
           Slider(
-            value: _pain,
+            value: _pain ?? 0,
             min: 0,
             max: 10,
             divisions: 10,
-            label: _pain.round().toString(),
+            label: (_pain ?? 0).round().toString(),
             onChanged: (v) => setState(() => _pain = v),
           ),
           TextField(
@@ -199,7 +239,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
           const SizedBox(height: 16),
           FilledButton(
             onPressed: () => Navigator.pop(
-                context, (pain: _pain.round(), notes: _notes.text.trim())),
+                context, (pain: _pain?.round(), notes: _notes.text.trim())),
             child: const Text('Save and complete'),
           ),
         ],

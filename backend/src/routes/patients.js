@@ -2,6 +2,7 @@ const express = require('express');
 const { authenticate, requireRole } = require('../middleware/auth');
 const validateId = require('../middleware/validateId');
 const c = require('../controllers/patientController');
+const a = require('../controllers/assignmentController');
 
 const router = express.Router();
 
@@ -18,5 +19,10 @@ router.delete('/:id', validateId('id'), c.remove);
 router.post('/:id/reset-password', validateId('id'), c.resetPassword);
 router.patch('/:id/deactivate', validateId('id'), c.deactivate);
 router.patch('/:id/reactivate', validateId('id'), c.reactivate);
+
+// Exercise program and progress of one patient
+router.get('/:id/assignments', validateId('id'), a.listForPatient);
+router.post('/:id/assignments', validateId('id'), a.create);
+router.get('/:id/completions', validateId('id'), a.completionsForPatient);
 
 module.exports = router;

@@ -1,9 +1,8 @@
+import 'dart:ui' show FontFeature;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'app_colors.dart';
 
-/// Spacing scale. Use these instead of magic numbers.
 abstract final class AppSpacing {
   static const double xs = 4;
   static const double sm = 8;
@@ -11,44 +10,39 @@ abstract final class AppSpacing {
   static const double lg = 16;
   static const double xl = 24;
   static const double xxl = 32;
-
-  /// Horizontal margin of a page.
   static const double page = 20;
 }
 
-/// Corner radii used across the app.
 abstract final class AppRadius {
   static const double input = 12;
   static const double button = 14;
   static const double card = 18;
   static const double dialog = 20;
   static const double sheet = 24;
+  static const double fab = 18;
 }
 
-/// Animation timings.
 abstract final class AppMotion {
   static const Duration fast = Duration(milliseconds: 180);
   static const Duration medium = Duration(milliseconds: 320);
   static const Curve curve = Curves.easeOutCubic;
 }
 
-/// Builds the app's [ThemeData] from a color scheme and the [AppColors] palette.
-///
-/// Typography and all component styling live here, so light and dark mode
-/// share exactly the same shapes, sizes and spacing and differ only in color.
-/// See `light_theme.dart` and `dark_theme.dart` for the two palettes.
 abstract final class AppTheme {
   static const String fontFamily = 'Manrope';
 
-  /// Status bar and system navigation bar styling for a theme.
-  static SystemUiOverlayStyle overlayStyle(AppColors c, Brightness brightness) {
+  static SystemUiOverlayStyle overlayStyle(
+    AppColors c,
+    Brightness brightness,
+  ) {
     final isDark = brightness == Brightness.dark;
-    final iconBrightness = isDark ? Brightness.light : Brightness.dark;
+    final iconBrightness =
+        isDark ? Brightness.light : Brightness.dark;
     return SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: iconBrightness,
-      // iOS describes the bar's background, not its icons.
-      statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+      statusBarBrightness:
+          isDark ? Brightness.dark : Brightness.light,
       systemNavigationBarColor: c.surface,
       systemNavigationBarIconBrightness: iconBrightness,
       systemNavigationBarDividerColor: Colors.transparent,
@@ -60,6 +54,7 @@ abstract final class AppTheme {
       double size,
       FontWeight weight, {
       double height = 1.4,
+      double letterSpacing = 0,
       Color? color,
     }) {
       return TextStyle(
@@ -67,46 +62,84 @@ abstract final class AppTheme {
         fontSize: size,
         fontWeight: weight,
         height: height,
+        letterSpacing: letterSpacing,
         color: color ?? c.textPrimary,
+        fontFeatures: const [FontFeature.tabularFigures()],
       );
     }
 
     return TextTheme(
-      // Page headings: 24-28, bold
-      displayLarge: style(32, FontWeight.w700, height: 1.2),
-      displayMedium: style(30, FontWeight.w700, height: 1.2),
-      displaySmall: style(28, FontWeight.w700, height: 1.2),
-      headlineLarge: style(28, FontWeight.w700, height: 1.2),
-      headlineMedium: style(26, FontWeight.w700, height: 1.25),
-      headlineSmall: style(24, FontWeight.w700, height: 1.25),
-      // Section headings: 18-20, semibold. Card headings: 16-18, semibold.
-      titleLarge: style(20, FontWeight.w600, height: 1.3),
+      displayLarge: style(
+        36,
+        FontWeight.w700,
+        height: 1.15,
+        letterSpacing: -0.9,
+      ),
+      displayMedium: style(
+        32,
+        FontWeight.w700,
+        height: 1.15,
+        letterSpacing: -0.7,
+      ),
+      displaySmall: style(
+        30,
+        FontWeight.w700,
+        height: 1.2,
+        letterSpacing: -0.6,
+      ),
+      headlineLarge: style(
+        32,
+        FontWeight.w700,
+        height: 1.2,
+        letterSpacing: -0.6,
+      ),
+      headlineMedium: style(
+        30,
+        FontWeight.w700,
+        height: 1.2,
+        letterSpacing: -0.6,
+      ),
+      headlineSmall: style(
+        26,
+        FontWeight.w700,
+        height: 1.25,
+        letterSpacing: -0.4,
+      ),
+      titleLarge: style(
+        20,
+        FontWeight.w700,
+        height: 1.3,
+        letterSpacing: -0.2,
+      ),
       titleMedium: style(16, FontWeight.w600, height: 1.35),
       titleSmall: style(14, FontWeight.w600, height: 1.35),
-      // Body: 14-16, regular
       bodyLarge: style(16, FontWeight.w400, height: 1.5),
       bodyMedium: style(14, FontWeight.w400, height: 1.5),
       bodySmall: style(13, FontWeight.w400, color: c.textSecondary),
-      // Labels and captions: 12-13, medium
       labelLarge: style(14, FontWeight.w600, height: 1.3),
       labelMedium: style(13, FontWeight.w500, color: c.textSecondary),
       labelSmall: style(12, FontWeight.w500, color: c.textSecondary),
     );
   }
 
-  static ThemeData build({required ColorScheme scheme, required AppColors colors}) {
+  static ThemeData build({
+    required ColorScheme scheme,
+    required AppColors colors,
+  }) {
     final c = colors;
     final text = _textTheme(c);
     final brightness = scheme.brightness;
 
-    RoundedRectangleBorder rounded(double radius, {BorderSide? side}) {
+    RoundedRectangleBorder rounded(
+      double radius, {
+      BorderSide? side,
+    }) {
       return RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(radius),
         side: side ?? BorderSide.none,
       );
     }
 
-    // ---- Buttons ----
     final buttonShape = WidgetStatePropertyAll<OutlinedBorder>(
       rounded(AppRadius.button),
     );
@@ -116,6 +149,7 @@ abstract final class AppTheme {
     final buttonText = WidgetStatePropertyAll<TextStyle?>(
       text.labelLarge?.copyWith(fontSize: 15),
     );
+
     WidgetStateProperty<Color?> pressOverlay(Color base) {
       return WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.pressed)) {
@@ -132,37 +166,53 @@ abstract final class AppTheme {
     final disabledBackground = c.secondary;
     final disabledForeground = c.primary.withValues(alpha: 0.5);
 
+    // ---- Buttons ----
     final filledButton = FilledButtonThemeData(
       style: ButtonStyle(
-        minimumSize: const WidgetStatePropertyAll(Size.fromHeight(52)),
+        minimumSize: const WidgetStatePropertyAll(
+          Size.fromHeight(52),
+        ),
         padding: buttonPadding,
         shape: buttonShape,
         elevation: const WidgetStatePropertyAll(0),
         textStyle: buttonText,
         backgroundColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.disabled) ? disabledBackground : c.primary,
+          (s) =>
+              s.contains(WidgetState.disabled)
+                  ? disabledBackground
+                  : c.primary,
         ),
         foregroundColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.disabled) ? disabledForeground : c.onPrimary,
+          (s) =>
+              s.contains(WidgetState.disabled)
+                  ? disabledForeground
+                  : c.onPrimary,
         ),
         overlayColor: pressOverlay(c.onPrimary),
       ),
     );
 
-    // Tonal button (soft green), used for secondary actions.
     final elevatedButton = ElevatedButtonThemeData(
       style: ButtonStyle(
-        minimumSize: const WidgetStatePropertyAll(Size.fromHeight(52)),
+        minimumSize: const WidgetStatePropertyAll(
+          Size.fromHeight(52),
+        ),
         padding: buttonPadding,
         shape: buttonShape,
         elevation: const WidgetStatePropertyAll(0),
         shadowColor: const WidgetStatePropertyAll(Colors.transparent),
         textStyle: buttonText,
         backgroundColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.disabled) ? c.border : c.secondary,
+          (s) =>
+              s.contains(WidgetState.disabled)
+                  ? c.border
+                  : c.secondary,
         ),
         foregroundColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.disabled) ? c.textSecondary : c.primary,
+          (s) =>
+              s.contains(WidgetState.disabled)
+                  ? c.textSecondary
+                  : c.primary,
         ),
         overlayColor: pressOverlay(c.primary),
       ),
@@ -170,16 +220,24 @@ abstract final class AppTheme {
 
     final outlinedButton = OutlinedButtonThemeData(
       style: ButtonStyle(
-        minimumSize: const WidgetStatePropertyAll(Size.fromHeight(52)),
+        minimumSize: const WidgetStatePropertyAll(
+          Size.fromHeight(52),
+        ),
         padding: buttonPadding,
         shape: buttonShape,
         textStyle: buttonText,
         foregroundColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.disabled) ? c.textSecondary : c.primary,
+          (s) =>
+              s.contains(WidgetState.disabled)
+                  ? c.textSecondary
+                  : c.primary,
         ),
         side: WidgetStateProperty.resolveWith(
           (s) => BorderSide(
-            color: s.contains(WidgetState.disabled) ? c.border : c.accent,
+            color:
+                s.contains(WidgetState.disabled)
+                    ? c.border
+                    : c.accent,
           ),
         ),
         overlayColor: pressOverlay(c.primary),
@@ -193,12 +251,27 @@ abstract final class AppTheme {
           EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         ),
         shape: WidgetStatePropertyAll<OutlinedBorder>(rounded(12)),
-        textStyle: WidgetStatePropertyAll<TextStyle?>(text.labelLarge),
-        foregroundColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.disabled) ? c.textSecondary : c.primary,
+        textStyle: WidgetStatePropertyAll<TextStyle?>(
+          text.labelLarge,
         ),
-        overlayColor: pressOverlay(c.primary),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (s) =>
+              s.contains(WidgetState.disabled)
+                  ? c.textSecondary
+                  : c.highlight,
+        ),
+        overlayColor: pressOverlay(c.highlight),
       ),
+    );
+
+    final fab = FloatingActionButtonThemeData(
+      backgroundColor: c.highlight,
+      foregroundColor: c.onHighlight,
+      elevation: 0,
+      focusElevation: 0,
+      hoverElevation: 0,
+      highlightElevation: 0,
+      shape: rounded(AppRadius.fab),
     );
 
     // ---- Inputs ----
@@ -206,12 +279,13 @@ abstract final class AppTheme {
       borderRadius: BorderRadius.circular(AppRadius.input),
       borderSide: BorderSide(color: c.border),
     );
+
     TextStyle labelStyle(Set<WidgetState> states) {
       final color =
           states.contains(WidgetState.error)
               ? c.error
               : states.contains(WidgetState.focused)
-              ? c.primary
+              ? c.highlight
               : c.textSecondary;
       return text.bodyLarge!.copyWith(color: color);
     }
@@ -219,27 +293,40 @@ abstract final class AppTheme {
     final inputDecoration = InputDecorationTheme(
       filled: true,
       fillColor: c.surface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 16,
+      ),
       border: inputBorder,
       enabledBorder: inputBorder,
       disabledBorder: inputBorder,
       focusedBorder: inputBorder.copyWith(
-        borderSide: BorderSide(color: c.primary, width: 1.5),
+        borderSide: BorderSide(color: c.highlight, width: 1.5),
       ),
-      errorBorder: inputBorder.copyWith(borderSide: BorderSide(color: c.error)),
+      errorBorder: inputBorder.copyWith(
+        borderSide: BorderSide(color: c.error),
+      ),
       focusedErrorBorder: inputBorder.copyWith(
         borderSide: BorderSide(color: c.error, width: 1.5),
       ),
       labelStyle: WidgetStateTextStyle.resolveWith(labelStyle),
-      floatingLabelStyle: WidgetStateTextStyle.resolveWith(labelStyle),
+      floatingLabelStyle: WidgetStateTextStyle.resolveWith(
+        labelStyle,
+      ),
       hintStyle: text.bodyLarge!.copyWith(color: c.textSecondary),
       helperStyle: text.bodySmall,
       errorStyle: text.bodySmall!.copyWith(color: c.error),
       prefixIconColor: WidgetStateColor.resolveWith(
-        (s) => s.contains(WidgetState.focused) ? c.primary : c.textSecondary,
+        (s) =>
+            s.contains(WidgetState.focused)
+                ? c.highlight
+                : c.textSecondary,
       ),
       suffixIconColor: WidgetStateColor.resolveWith(
-        (s) => s.contains(WidgetState.focused) ? c.primary : c.textSecondary,
+        (s) =>
+            s.contains(WidgetState.focused)
+                ? c.highlight
+                : c.textSecondary,
       ),
     );
 
@@ -249,12 +336,16 @@ abstract final class AppTheme {
       backgroundColor: c.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      indicatorColor: c.secondary,
+      indicatorColor: c.highlightSoft,
+      indicatorShape: const StadiumBorder(),
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       iconTheme: WidgetStateProperty.resolveWith(
         (s) => IconThemeData(
           size: 24,
-          color: s.contains(WidgetState.selected) ? c.primary : c.textSecondary,
+          color:
+              s.contains(WidgetState.selected)
+                  ? c.highlight
+                  : c.textSecondary,
         ),
       ),
       labelTextStyle: WidgetStateProperty.resolveWith((s) {
@@ -262,37 +353,118 @@ abstract final class AppTheme {
         return TextStyle(
           fontFamily: fontFamily,
           fontSize: 12,
-          fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-          color: selected ? c.primary : c.textSecondary,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          color: selected ? c.highlight : c.textSecondary,
         );
       }),
     );
 
     final tabBar = TabBarThemeData(
-      labelColor: c.primary,
+      labelColor: c.highlight,
       unselectedLabelColor: c.textSecondary,
-      indicatorColor: c.primary,
+      indicatorColor: c.highlight,
       dividerColor: c.border,
       indicatorSize: TabBarIndicatorSize.label,
       labelStyle: text.labelLarge,
-      unselectedLabelStyle: text.labelLarge?.copyWith(fontWeight: FontWeight.w500),
+      unselectedLabelStyle: text.labelLarge?.copyWith(
+        fontWeight: FontWeight.w500,
+      ),
     );
 
     final segmentedButton = SegmentedButtonThemeData(
       style: ButtonStyle(
-        shape: WidgetStatePropertyAll<OutlinedBorder>(rounded(AppRadius.input)),
+        shape: WidgetStatePropertyAll<OutlinedBorder>(
+          rounded(AppRadius.input),
+        ),
         side: WidgetStatePropertyAll(BorderSide(color: c.border)),
         textStyle: WidgetStatePropertyAll<TextStyle?>(
           text.labelLarge?.copyWith(fontSize: 13),
         ),
         backgroundColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.selected) ? c.secondary : c.surface,
+          (s) =>
+              s.contains(WidgetState.selected)
+                  ? c.highlightSoft
+                  : c.surface,
         ),
         foregroundColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.selected) ? c.primary : c.textSecondary,
+          (s) =>
+              s.contains(WidgetState.selected)
+                  ? c.highlight
+                  : c.textSecondary,
         ),
-        overlayColor: pressOverlay(c.primary),
+        overlayColor: pressOverlay(c.highlight),
       ),
+    );
+
+    // ---- Toggles ----
+    final switchTheme = SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+        (s) =>
+            s.contains(WidgetState.selected)
+                ? c.onHighlight
+                : c.surface,
+      ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (s) =>
+            s.contains(WidgetState.selected) ? c.highlight : c.border,
+      ),
+      trackOutlineColor: WidgetStatePropertyAll(c.border),
+      overlayColor: pressOverlay(c.highlight),
+    );
+
+    final checkbox = CheckboxThemeData(
+      fillColor: WidgetStateProperty.resolveWith(
+        (s) =>
+            s.contains(WidgetState.selected)
+                ? c.highlight
+                : Colors.transparent,
+      ),
+      checkColor: WidgetStatePropertyAll(c.onHighlight),
+      side: WidgetStateBorderSide.resolveWith(
+        (s) => BorderSide(
+          color:
+              s.contains(WidgetState.selected)
+                  ? c.highlight
+                  : c.border,
+        ),
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(6),
+      ),
+      overlayColor: pressOverlay(c.highlight),
+    );
+
+    final radio = RadioThemeData(
+      fillColor: WidgetStateProperty.resolveWith(
+        (s) =>
+            s.contains(WidgetState.selected) ? c.highlight : c.border,
+      ),
+      overlayColor: pressOverlay(c.highlight),
+    );
+
+    final slider = SliderThemeData(
+      activeTrackColor: c.highlight,
+      inactiveTrackColor: c.secondary,
+      thumbColor: c.highlight,
+      overlayColor: c.highlightSoft,
+      valueIndicatorColor: c.highlight,
+      valueIndicatorTextStyle: text.labelMedium?.copyWith(
+        color: c.onHighlight,
+      ),
+    );
+
+    // ---- Chip (FIXED: removed invalid selectedLabelStyle) ----
+    final chip = ChipThemeData(
+      backgroundColor: c.secondary,
+      selectedColor: c.highlight,
+      side: BorderSide.none,
+      shape: rounded(10),
+      labelStyle: text.labelMedium?.copyWith(
+        color: c.primary,
+        fontWeight: FontWeight.w600,
+      ),
+      checkmarkColor: c.onHighlight,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
     );
 
     // ---- Surfaces ----
@@ -302,16 +474,18 @@ abstract final class AppTheme {
       margin: EdgeInsets.zero,
       surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
-      shape: rounded(AppRadius.card, side: BorderSide(color: c.border)),
+      shape: rounded(AppRadius.card),
     );
 
     final dialog = DialogThemeData(
       backgroundColor: c.elevated,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      shape: rounded(AppRadius.dialog, side: BorderSide(color: c.border)),
+      shape: rounded(AppRadius.dialog),
       titleTextStyle: text.titleLarge,
-      contentTextStyle: text.bodyMedium?.copyWith(color: c.textSecondary),
+      contentTextStyle: text.bodyMedium?.copyWith(
+        color: c.textSecondary,
+      ),
       actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
     );
 
@@ -334,39 +508,36 @@ abstract final class AppTheme {
       color: c.elevated,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      shape: rounded(AppRadius.button, side: BorderSide(color: c.border)),
+      shape: rounded(
+        AppRadius.button,
+        side: BorderSide(color: c.border),
+      ),
       textStyle: text.bodyMedium,
     );
 
     final snackBar = SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: scheme.inverseSurface,
-      contentTextStyle: text.bodyMedium?.copyWith(color: scheme.onInverseSurface),
-      actionTextColor: scheme.inversePrimary,
+      contentTextStyle: text.bodyMedium?.copyWith(
+        color: scheme.onInverseSurface,
+      ),
+      actionTextColor: c.highlight,
       elevation: 0,
       shape: rounded(AppRadius.button),
     );
 
-    final chip = ChipThemeData(
-      backgroundColor: c.secondary,
-      side: BorderSide.none,
-      shape: rounded(10),
-      labelStyle: text.labelMedium?.copyWith(
-        color: c.primary,
-        fontWeight: FontWeight.w600,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-    );
-
+    // ---- ListTile (FIXED: removed invalid selectedIconTheme) ----
     final listTile = ListTileThemeData(
       iconColor: c.textSecondary,
+      selectedTileColor: c.highlightSoft,
       textColor: c.textPrimary,
+      selectedColor: c.highlight,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       shape: rounded(AppRadius.button),
     );
 
     final progress = ProgressIndicatorThemeData(
-      color: c.primary,
+      color: c.highlight,
       linearTrackColor: c.secondary,
       linearMinHeight: 6,
     );
@@ -379,7 +550,11 @@ abstract final class AppTheme {
       scaffoldBackgroundColor: c.background,
       canvasColor: c.background,
       iconTheme: IconThemeData(color: c.textPrimary, size: 24),
-      dividerTheme: DividerThemeData(color: c.border, thickness: 1, space: 1),
+      dividerTheme: DividerThemeData(
+        color: c.border,
+        thickness: 1,
+        space: 1,
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: c.background,
         foregroundColor: c.textPrimary,
@@ -402,15 +577,20 @@ abstract final class AppTheme {
       elevatedButtonTheme: elevatedButton,
       outlinedButtonTheme: outlinedButton,
       textButtonTheme: textButton,
+      floatingActionButtonTheme: fab,
       inputDecorationTheme: inputDecoration,
       navigationBarTheme: navigationBar,
       tabBarTheme: tabBar,
       segmentedButtonTheme: segmentedButton,
+      switchTheme: switchTheme,
+      checkboxTheme: checkbox,
+      radioTheme: radio,
+      sliderTheme: slider,
       progressIndicatorTheme: progress,
       textSelectionTheme: TextSelectionThemeData(
-        cursorColor: c.primary,
-        selectionColor: c.primary.withValues(alpha: 0.25),
-        selectionHandleColor: c.primary,
+        cursorColor: c.highlight,
+        selectionColor: c.highlightSoftStrong,
+        selectionHandleColor: c.highlight,
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {

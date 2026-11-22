@@ -11,12 +11,21 @@ import '../widgets/app_states.dart';
 import '../widgets/page_helpers.dart';
 
 String prescriptionText(ExerciseAssignment a) {
-  final parts = ['${a.sets} sets × ${a.reps} reps'];
+  final parts = <String>[];
+  if (a.sets != null && a.reps != null) {
+    parts.add('${a.sets} sets × ${a.reps} reps');
+  } else if (a.reps != null) {
+    parts.add('${a.reps} reps');
+  }
   if (a.durationSeconds != null && a.durationSeconds! > 0) {
     parts.add('hold ${fmtSeconds(a.durationSeconds!)}');
   }
-  return parts.join(' · ');
+  return parts.isEmpty ? 'See instructions' : parts.join(' · ');
 }
+
+/// The "6/10" progress of an assignment.
+String progressText(ExerciseAssignment a) =>
+    '${a.doneCount}/${a.totalTimes} sessions done';
 
 /// Patient: today's exercises.
 class MyExercisesScreen extends ConsumerWidget {
@@ -100,6 +109,9 @@ class MyExercisesScreen extends ConsumerWidget {
                                   Text(a.exercise.title, style: text.titleSmall),
                                   const SizedBox(height: 2),
                                   Text(prescriptionText(a),
+                                      style: text.bodySmall
+                                          ?.copyWith(color: colors.textSecondary)),
+                                  Text(progressText(a),
                                       style: text.bodySmall
                                           ?.copyWith(color: colors.textSecondary)),
                                 ],

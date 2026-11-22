@@ -25,7 +25,11 @@ class _ExerciseFormScreenState extends ConsumerState<ExerciseFormScreen> {
   final _category = TextEditingController();
   final _description = TextEditingController();
   final _video = TextEditingController();
-  final _image = TextEditingController();
+  final _images = TextEditingController(); // one link per line
+  final _sets = TextEditingController();
+  final _reps = TextEditingController();
+  final _hold = TextEditingController();
+  final _rest = TextEditingController();
   final _precautions = TextEditingController();
   bool _saving = false;
   bool _prefilled = false;
@@ -34,7 +38,7 @@ class _ExerciseFormScreenState extends ConsumerState<ExerciseFormScreen> {
 
   @override
   void dispose() {
-    for (final c in [_title, _category, _description, _video, _image, _precautions]) {
+    for (final c in [_title, _category, _description, _video, _images, _precautions, _sets, _reps, _hold, _rest]) {
       c.dispose();
     }
     super.dispose();
@@ -47,7 +51,11 @@ class _ExerciseFormScreenState extends ConsumerState<ExerciseFormScreen> {
     _category.text = e.category ?? '';
     _description.text = e.description;
     _video.text = e.videoUrl ?? '';
-    _image.text = e.imageUrl ?? '';
+    _images.text = e.imageUrls.join('\n');
+    _sets.text = e.defaultSets?.toString() ?? '';
+    _reps.text = e.defaultReps?.toString() ?? '';
+    _hold.text = e.defaultDurationSeconds?.toString() ?? '';
+    _rest.text = e.defaultRestSeconds?.toString() ?? '';
     _precautions.text = e.precautions ?? '';
   }
 
@@ -60,6 +68,20 @@ class _ExerciseFormScreenState extends ConsumerState<ExerciseFormScreen> {
         : 'Enter a full link starting with https://';
   }
 
+  String? _urls(String? v) {
+    for (final line in (v ?? '').split('\n')) {
+      final err = _url(line);
+      if (err != null) return err;
+    }
+    return null;
+  }
+
+  String? _wholeNumber(String? v) {
+    if (v == null || v.trim().isEmpty) return null;
+    final n = int.tryParse(v.trim());
+    return (n == null || n < 0) ? 'Enter a whole number' : null;
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -70,7 +92,15 @@ class _ExerciseFormScreenState extends ConsumerState<ExerciseFormScreen> {
       description: _description.text.trim(),
       category: _category.text.trim(),
       videoUrl: _video.text.trim(),
-      imageUrl: _image.text.trim(),
+      imageUrls: _images.text
+          .split('\n')
+          .map((l) => l.trim())
+          .where((l) => l.isNotEmpty)
+          .toList(),
+      defaultSets: int.tryParse(_sets.text.trim()),
+      defaultReps: int.tryParse(_reps.text.trim()),
+      defaultDurationSeconds: int.tryParse(_hold.text.trim()),
+      defaultRestSeconds: int.tryParse(_rest.text.trim()),
       precautions: _precautions.text.trim(),
     );
     try {
@@ -189,11 +219,60 @@ class _ExerciseFormScreenState extends ConsumerState<ExerciseFormScreen> {
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
-                    controller: _image,
-                    keyboardType: TextInputType.url,
-                    decoration:
-                        const InputDecoration(labelText: 'Image link (optional)'),
-                    validator: _url,
+                    controller: _images,
+                    keyboardType: TextInputType.multiline,
+                    minLines: 2,
+                    maxLines: 5,
+                    decoration: const InputDecoration(
+                        labelText: 'Image links (optional, one per line)',
+                        alignLabelWithHint: true),
+                    validator: _urls,
+                  ),
+                  const SectionHeader('Suggested prescription (optional)'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _sets,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(labelText: 'Sets'),
+                          validator: _wholeNumber,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _reps,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(labelText: 'Reps'),
+                          validator: _wholeNumber,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _hold,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: 'Hold (seconds)'),
+                          validator: _wholeNumber,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _rest,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: 'Rest (seconds)'),
+                          validator: _wholeNumber,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   FilledButton(

@@ -29,6 +29,12 @@ import '../screens/appointments_screen.dart';
 import '../screens/appointment_form_screen.dart';
 import '../screens/appointment_detail_screen.dart';
 import '../screens/my_appointments_screen.dart';
+// Announcements
+import '../screens/announcements_screen.dart';
+import '../screens/broadcast_form_screen.dart';
+import '../screens/channel_form_screen.dart';
+import '../screens/channel_screen.dart';
+import '../screens/my_announcements_screen.dart';
 
 class AppRoutes {
   static const splash = '/splash';
@@ -84,7 +90,7 @@ const _patientItems = [
 ];
 
 final routerProvider = Provider<GoRouter>((ref) {
-  // Tells the router to re-check its rules whenever the login state changes
+  // Re-check redirect rules whenever the login state changes
   final refresh = ValueNotifier<int>(0);
   ref.listen(
     authControllerProvider,
@@ -113,7 +119,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                 auth.user!.isAdmin
                     ? AppRoutes.admin
                     : AppRoutes.patient;
-            // Each role may only stay inside its own area
             final inside =
                 location == home || location.startsWith('$home/');
             return inside ? null : home;
@@ -141,6 +146,47 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutes.admin,
                 builder: (context, state) => const AdminHomeScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'announcements',
+                    builder:
+                        (context, state) =>
+                            const AnnouncementsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'broadcasts/new',
+                        builder:
+                            (context, state) =>
+                                const BroadcastFormScreen(),
+                      ),
+                      // 'channels/new' must stay above 'channels/:id'
+                      GoRoute(
+                        path: 'channels/new',
+                        builder:
+                            (context, state) =>
+                                const ChannelFormScreen(),
+                      ),
+                      GoRoute(
+                        path: 'channels/:id',
+                        builder:
+                            (context, state) => ChannelScreen(
+                              channelId: state.pathParameters['id']!,
+                              mine: false,
+                            ),
+                        routes: [
+                          GoRoute(
+                            path: 'edit',
+                            builder:
+                                (context, state) => ChannelFormScreen(
+                                  channelId:
+                                      state.pathParameters['id'],
+                                ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
@@ -212,11 +258,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Calendar tab (path changed from /admin/calendar to /admin/appointments)
+          // Calendar tab  <-- FIX: path is now '/admin/calendar' to match the nav
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/admin/appointments',
+                path: '/admin/calendar',
                 builder:
                     (context, state) => const AppointmentsScreen(),
                 routes: [
@@ -294,6 +340,24 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: AppRoutes.patient,
                 builder:
                     (context, state) => const PatientHomeScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'announcements',
+                    builder:
+                        (context, state) =>
+                            const MyAnnouncementsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'channels/:id',
+                        builder:
+                            (context, state) => ChannelScreen(
+                              channelId: state.pathParameters['id']!,
+                              mine: true,
+                            ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const User = require('../models/User');
+const HttpError = require('./HttpError');
 
 // The admin who owns the data of this user
 function adminIdOf(user) {
@@ -24,4 +25,21 @@ async function findOwnPatient(admin, patientId, { withNotes = false } = {}) {
     return query.exec();
 }
 
-module.exports = { adminIdOf, scopeFilter, findOwnPatient };
+// Checks that every id is a patient of this admin and returns them as ObjectIds.
+// Throws 400 if any id is invalid or belongs to someone else.
+async function ownPatientIds(admin, ids, { activeOnly = false } = {}) {
+    const list = [...new Set((Array.isArray(ids) ? ids : []).map(String))];
+    if (!list.every((id) => mongoose.isValidObjectId(id))) {
+        throw new HttpError(400, 'One of the patient ids is invalid');
+    }
+    const filter = { _id: { $in: list }, role: 'patient', adminId: admin._id };
+    if (activeOnly) filter.isActive = true;
+
+    const found = await User.find(filter).select('_id');
+    if (found.length !== list.length) {
+        throw new HttpError(400, 'Some of the selected patients were not found or are deactivated');
+    }
+    return found.map((u) => u._id);
+}
+
+module.exports = { adminIdOf, scopeFilter, findOwnPatient, ownPatientIds };

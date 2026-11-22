@@ -91,9 +91,9 @@ class ExerciseHistoryScreen extends ConsumerWidget {
                               Text('Pain ${c.painLevel}/10',
                                   style: text.bodySmall
                                       ?.copyWith(color: colors.textSecondary)),
-                            if ((c.notes ?? '').isNotEmpty) ...[
+                            if ((c.patientNote ?? '').isNotEmpty) ...[
                               const SizedBox(height: 6),
-                              Text(c.notes!, style: text.bodyMedium),
+                              Text(c.patientNote!, style: text.bodyMedium),
                             ],
                           ],
                         ),

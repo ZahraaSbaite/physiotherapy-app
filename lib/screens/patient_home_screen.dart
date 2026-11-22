@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/app_theme.dart';
 import '../services/auth_controller.dart';
+import '../widgets/announcements_preview.dart';
 import '../widgets/appear_animation.dart';
 import '../widgets/home_widgets.dart';
 import '../widgets/page_body.dart';
 import '../widgets/placeholders.dart';
+import '../widgets/today_hero_card.dart';
 
 class PatientHomeScreen extends ConsumerWidget {
   const PatientHomeScreen({super.key});
@@ -29,16 +31,9 @@ class PatientHomeScreen extends ConsumerWidget {
             children: [
               AppearAnimation(child: HomeHeader(name: user?.name ?? '')),
               const SizedBox(height: AppSpacing.xxl),
-              const AppearAnimation(index: 1, child: SectionTitle('Today')),
-              const AppearAnimation(
-                index: 2,
-                child: ComingSoonCard(
-                  icon: Icons.fitness_center_outlined,
-                  title: "Today's exercises",
-                  subtitle: 'The exercises to do today, with a check when done.',
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
+              const AppearAnimation(index: 1, child: TodayHeroCard()),
+              const SizedBox(height: AppSpacing.xl),
+              const AppearAnimation(index: 2, child: SectionTitle('Coming up')),
               const AppearAnimation(
                 index: 3,
                 child: ComingSoonCard(
@@ -52,14 +47,7 @@ class PatientHomeScreen extends ConsumerWidget {
                 index: 4,
                 child: SectionTitle('From your therapist'),
               ),
-              const AppearAnimation(
-                index: 5,
-                child: ComingSoonCard(
-                  icon: Icons.campaign_outlined,
-                  title: 'Announcements',
-                  subtitle: 'Broadcasts and channels from your therapist.',
-                ),
-              ),
+              const AppearAnimation(index: 5, child: AnnouncementsPreview()),
             ],
           ),
         ),

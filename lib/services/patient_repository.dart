@@ -36,14 +36,14 @@ class PatientRepository {
       });
 
   Future<void> update(String id, Patient patient) =>
-      _guard(() => _dio.put('/patients/$id', data: patient.toJson()));
+      _guard(() => _dio.patch('/patients/$id', data: patient.toJson()));
 
   Future<void> setActive(String id, bool active) => _guard(
-      () => _dio.patch('/patients/$id/status', data: {'isActive': active}));
+      () => _dio.patch('/patients/$id/${active ? 'reactivate' : 'deactivate'}'));
 
   Future<void> resetPassword(String id, String newPassword) => _guard(() =>
       _dio.post('/patients/$id/reset-password',
-          data: {'password': newPassword}));
+          data: {'newPassword': newPassword}));
 
   /// Converts Dio failures into a readable message.
   /// Swap for the project's ApiException if it exposes a Dio factory.
